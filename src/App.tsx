@@ -21,12 +21,6 @@ function App() {
           <a href="#" className="block px-4 py-2 rounded-md bg-slate-800 text-white font-medium">
             Promptify
           </a>
-          <a href="#" className="block px-4 py-2 rounded-md hover:bg-slate-800 text-slate-300 transition-colors">
-            Settings
-          </a>
-          <a href="#" className="block px-4 py-2 rounded-md hover:bg-slate-800 text-slate-300 transition-colors">
-            Profile
-          </a>
         </nav>
       </aside>
 
