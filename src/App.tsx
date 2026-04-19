@@ -68,7 +68,7 @@ function App() {
             
             <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0">
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">Promptify</h1>
-              <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-600" aria-hidden="true">
                   <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
@@ -108,7 +108,7 @@ function App() {
                 />
                 <button
                   onClick={handleSubmit}
-                  className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900 text-sm font-medium rounded-lg focus:outline-none transition-all duration-200 ease-in-out shadow-sm"
+                  className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900 text-sm font-medium rounded-lg focus:outline-none cursor-pointer transition-all duration-200 ease-in-out shadow-sm"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M12 19V5M5 12l7-7 7 7"/>
