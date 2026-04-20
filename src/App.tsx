@@ -64,19 +64,19 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Content Container */}
-        <div className="flex-1 p-8 overflow-y-auto">
+        <div className="flex-1 px-8 pb-8 pt-2 md:pt-8 overflow-y-auto">
           <div className="w-full space-y-8">
 
-            <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Promptify</h1>
+            <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0 mt-4 md:mt-0">
+              <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-900">Promptify</h1>
               <div className="flex items-center gap-4">
                 <Show when="signed-out">
                   <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
                     <SignInButton mode="modal">
-                      <button className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg cursor-pointer transition-all">Sign In</button>
+                      <button className="px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg cursor-pointer transition-all">Sign In</button>
                     </SignInButton>
                     <SignUpButton mode="modal">
-                      <button className="px-4 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 cursor-pointer transition-all shadow-sm">Sign Up</button>
+                      <button className="px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 cursor-pointer transition-all shadow-sm">Sign Up</button>
                     </SignUpButton>
                   </div>
                 </Show>
