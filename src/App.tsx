@@ -17,7 +17,7 @@ function App() {
 
       try {
         const token = await getToken();
-        const response = await fetch('https://mx5htknqibi7bjoouzrowexuvm0fzfkl.lambda-url.us-east-1.on.aws', {
+        const response = await fetch('https://aqxjjtio2cqde66oo33z6itz6q0xajoe.lambda-url.us-east-1.on.aws', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
