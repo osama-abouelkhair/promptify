@@ -1,29 +1,41 @@
 import { useState } from 'react'
 import './App.css'
-import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/react'
+import { Show, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
+  const { getToken } = useAuth();
 
-  const aiResponses = [
-    "That's interesting! Tell me more.",
-    "I understand. How can I help with that?",
-    "Processing your request...",
-    "Based on my analysis, that seems correct.",
-    "I'm not sure I follow, could you clarify?"
-  ];
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (inputValue.trim()) {
-      const userMsg = { role: 'user' as const, text: inputValue };
-      const aiMsg = {
-        role: 'ai' as const,
-        text: aiResponses[Math.floor(Math.random() * aiResponses.length)]
-      };
-      setMessages((prev) => [...prev, userMsg, aiMsg]);
+      const text = inputValue;
+      const userMsg = { role: 'user' as const, text };
+      setMessages((prev) => [...prev, userMsg]);
       setInputValue('');
+
+      try {
+        const token = await getToken();
+        const response = await fetch('https://mx5htknqibi7bjoouzrowexuvm0fzfkl.lambda-url.us-east-1.on.aws', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ prompt: text })
+        });
+
+        if (!response.ok) throw new Error('Network response was not ok');
+
+        const data = await response.json();
+        const aiText = typeof data === 'string' ? data : (data.response || data.text || JSON.stringify(data));
+        const aiMsg = { role: 'ai' as const, text: aiText };
+        setMessages((prev) => [...prev, aiMsg]);
+      } catch (error) {
+        console.error('Error fetching response:', error);
+        setMessages((prev) => [...prev, { role: 'ai' as const, text: "Error: Unable to get a response from the server." }]);
+      }
     }
   };
 
