@@ -17,6 +17,7 @@ function App() {
 
       try {
         const token = await getToken();
+        console.log('Auth token:', token); // Debug: Log the token to ensure it's being retrieved
         const response = await fetch('https://aqxjjtio2cqde66oo33z6itz6q0xajoe.lambda-url.us-east-1.on.aws', {
           method: 'POST',
           headers: {
