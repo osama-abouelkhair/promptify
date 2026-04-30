@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import { Show, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
+import ReactMarkdown from 'react-markdown'
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -108,7 +109,13 @@ function App() {
                       : 'self-start bg-transparent text-slate-900'
                     }`}
                 >
-                  <p className="leading-relaxed">{msg.text}</p>
+                  {msg.role === 'user' ? (
+                    <p className="leading-relaxed">{msg.text}</p>
+                  ) : (
+                    <ReactMarkdown className="leading-relaxed prose prose-slate max-w-none text-slate-900">
+                      {msg.text}
+                    </ReactMarkdown>
+                  )}
                 </div>
               ))}
             </div>
