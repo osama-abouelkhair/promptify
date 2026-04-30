@@ -41,7 +41,7 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 text-slate-900 font-sans">
+    <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
       {/* Floating Menu Toggle for Mobile */}
       <button
         onClick={() => setIsSidebarOpen(true)}
@@ -117,7 +117,7 @@ function App() {
         </div>
 
         {/* Form/Action Card - Fixed at bottom */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200">
+        <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-slate-50 border-t border-slate-200">
           <div className="w-full">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
               <div className="flex items-center gap-3">
