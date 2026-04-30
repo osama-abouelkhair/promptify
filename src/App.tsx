@@ -112,9 +112,9 @@ function App() {
                   {msg.role === 'user' ? (
                     <p className="leading-relaxed">{msg.text}</p>
                   ) : (
-                    <ReactMarkdown className="leading-relaxed prose prose-slate max-w-none text-slate-900">
-                      {msg.text}
-                    </ReactMarkdown>
+                    <div className="leading-relaxed prose prose-slate max-w-none text-slate-900">
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    </div>
                   )}
                 </div>
               ))}
