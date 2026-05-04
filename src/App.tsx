@@ -25,6 +25,8 @@ function App() {
       setMessages((prev) => [...prev, userMsg]);
       setInputValue('');
       setCurrentStreamingAiText('');
+        
+      let accumulatedText = ''; // Local variable to accumulate text before updating state
 
       try {
         const token = await getToken();
@@ -47,7 +49,6 @@ function App() {
         const reader = response.body.getReader();
 
         const decoder = new TextDecoder();
-        let accumulatedText = ''; // Local variable to accumulate text before updating state
 
         while (true) {
           const { done, value } = await reader.read();
