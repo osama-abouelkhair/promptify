@@ -31,13 +31,13 @@ function App() {
 
         console.log('Response status:', response.status);
         console.log('Response headers:', response.headers);
-        console.log('Response body:', await response.text());
 
 
         if (!response.ok) throw new Error('Network response was not ok');
         if (!response.body) throw new Error('ReadableStream not supported');
 
         const reader = response.body.getReader();
+
         const decoder = new TextDecoder();
         let accumulatedText = '';
 
