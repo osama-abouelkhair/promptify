@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import { Show, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
 import ReactMarkdown from 'react-markdown'
@@ -8,6 +8,14 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
   const { getToken } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
+
+  // Effect to scroll to the bottom whenever messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleSubmit = async () => {
     if (inputValue.trim()) {
@@ -103,7 +111,7 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Content Container */}
-        <div className="flex-1 px-8 pb-8 pt-2 md:pt-8 overflow-y-auto">
+        <div ref={messagesEndRef} className="flex-1 px-8 pb-8 pt-2 md:pt-8 overflow-y-auto"> {/* Attach the ref here */}
           <div className="w-full space-y-8">
 
             <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0 mt-4 md:mt-0">
