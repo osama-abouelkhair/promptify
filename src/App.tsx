@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import { Show, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
 import ReactMarkdown from 'react-markdown'
@@ -7,24 +7,24 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
+  const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
   const { getToken } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
 
-  // Effect to scroll to the bottom whenever messages change
+  // Effect to scroll to the bottom whenever messages change or streaming text updates
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, currentStreamingAiText]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (inputValue.trim()) {
       const text = inputValue;
       const userMsg = { role: 'user' as const, text };
       setMessages((prev) => [...prev, userMsg]);
       setInputValue('');
-      // Add an empty AI message placeholder to be filled by the stream
-      setMessages((prev) => [...prev, { role: 'ai' as const, text: '' }]);
+      setCurrentStreamingAiText('');
 
       try {
         const token = await getToken();
@@ -47,7 +47,7 @@ function App() {
         const reader = response.body.getReader();
 
         const decoder = new TextDecoder();
-        let accumulatedText = '';
+        let accumulatedText = ''; // Local variable to accumulate text before updating state
 
         while (true) {
           const { done, value } = await reader.read();
@@ -55,24 +55,21 @@ function App() {
 
           const chunk = decoder.decode(value, { stream: true });
           accumulatedText += chunk;
-
-          // Update the last message (the placeholder) with the accumulated text
-          setMessages((prev) => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1] = { role: 'ai', text: accumulatedText };
-            return newMessages;
-          });
+          setCurrentStreamingAiText(accumulatedText); // Update the streaming text state
         }
+
+        // After the stream is done, add the complete message to the messages array
+        setMessages((prev) => [...prev, { role: 'ai', text: accumulatedText }]);
+        setCurrentStreamingAiText(''); // Clear the streaming text state
       } catch (error) {
         console.error('Error fetching response:', error);
-        setMessages((prev) => {
-          const newMessages = [...prev];
-          newMessages[newMessages.length - 1] = { role: 'ai' as const, text: "Error: Unable to get a response from the server." };
-          return newMessages;
-        });
+        // If an error occurs, add an error message to the main messages array
+        // We append to any partially received text
+        setMessages((prev) => [...prev, { role: 'ai' as const, text: accumulatedText + "\n\nError: Unable to get a complete response from the server." }]);
+        setCurrentStreamingAiText(''); // Clear streaming text on error
       }
     }
-  };
+  }, [inputValue, getToken]);
 
   return (
     <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
@@ -152,6 +149,16 @@ function App() {
                   )}
                 </div>
               ))}
+              {/* Render the currently streaming AI text */}
+              {currentStreamingAiText && (
+                <div
+                  className={`max-w-[85%] px-4 py-2 self-start bg-transparent text-slate-900`}
+                >
+                  <div className="leading-relaxed prose prose-slate max-w-none text-slate-900">
+                    <ReactMarkdown>{currentStreamingAiText}</ReactMarkdown>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
