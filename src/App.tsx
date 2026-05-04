@@ -15,27 +15,48 @@ function App() {
       const userMsg = { role: 'user' as const, text };
       setMessages((prev) => [...prev, userMsg]);
       setInputValue('');
+      // Add an empty AI message placeholder to be filled by the stream
+      setMessages((prev) => [...prev, { role: 'ai' as const, text: '' }]);
 
       try {
         const token = await getToken();
         const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'text/plain',
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ prompt: text })
         });
 
         if (!response.ok) throw new Error('Network response was not ok');
+        if (!response.body) throw new Error('ReadableStream not supported');
 
-        const data = await response.json();
-        const aiText = typeof data === 'string' ? data : (data.response || data.text || JSON.stringify(data));
-        const aiMsg = { role: 'ai' as const, text: aiText };
-        setMessages((prev) => [...prev, aiMsg]);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedText = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          accumulatedText += chunk;
+
+          // Update the last message (the placeholder) with the accumulated text
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1] = { role: 'ai', text: accumulatedText };
+            return newMessages;
+          });
+        }
       } catch (error) {
         console.error('Error fetching response:', error);
-        setMessages((prev) => [...prev, { role: 'ai' as const, text: "Error: Unable to get a response from the server." }]);
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = { role: 'ai' as const, text: "Error: Unable to get a response from the server." };
+          return newMessages;
+        });
       }
     }
   };
