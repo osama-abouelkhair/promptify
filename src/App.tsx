@@ -47,16 +47,47 @@ function App() {
         if (!response.body) throw new Error('ReadableStream not supported');
 
         const reader = response.body.getReader();
-
         const decoder = new TextDecoder();
+        let buffer = ''; // Temporary storage for partial chunks
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          accumulatedText += chunk;
-          setCurrentStreamingAiText(accumulatedText); // Update the streaming text state
+          // Decode current chunk and add to buffer
+          buffer += decoder.decode(value, { stream: true });
+          
+          // Split by newline assuming your API sends one JSON object per line (NDJSON)
+          const lines = buffer.split('\n');
+          
+          // Pop the last element: if the buffer ended with \n, it's empty.
+          // If not, it's a partial JSON string we need to keep for the next read.
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const parsed = JSON.parse(line);
+                // Change 'text' to the specific field name you want to display
+                const fieldContent = parsed.candidates[0].content.parts[0].text // || parsed.content || parsed.response || '';
+                accumulatedText += fieldContent;
+                setCurrentStreamingAiText(accumulatedText); 
+              } catch (e) {
+                console.warn('Could not parse JSON line:', line);
+              }
+            }
+          }
+        }
+
+        // Final check: if there is anything left in the buffer that didn't end with a newline
+        if (buffer.trim()) {
+          try {
+            const parsed = JSON.parse(buffer);
+            accumulatedText += (parsed.text || parsed.content || parsed.response || '');
+          } catch (e) {
+            // If your API sends raw text at the end, append it as a fallback
+            // accumulatedText += buffer; 
+          }
         }
 
         // After the stream is done, add the complete message to the messages array
