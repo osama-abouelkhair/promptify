@@ -25,7 +25,7 @@ function App() {
       setMessages((prev) => [...prev, userMsg]);
       setInputValue('');
       setCurrentStreamingAiText('');
-
+        
       let accumulatedText = ''; // Local variable to accumulate text before updating state
 
       try {
@@ -33,7 +33,7 @@ function App() {
         const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'text/plain',
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ prompt: text })
@@ -46,56 +46,22 @@ function App() {
         if (!response.ok) throw new Error('Network response was not ok');
         if (!response.body) throw new Error('ReadableStream not supported');
 
-
         const reader = response.body.getReader();
-        const decoder = new TextDecoder();
 
-        let buffer = "";
-        let accumulatedText = "";
+        const decoder = new TextDecoder();
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-
-          const parts = buffer.split("\n");
-          buffer = parts.pop() || "";
-
-          for (let line of parts) {
-            line = line.trim();
-
-            if (!line) continue;
-
-            // Gemini uses "data: ..."
-            if (line.startsWith("data:")) {
-              line = line.replace(/^data:\s*/, "");
-            }
-
-            // skip array tokens
-            if (line === "[" || line === "]" || line === ",") continue;
-
-            try {
-              const json = JSON.parse(line);
-
-              const textPart =
-                json.candidates?.[0]?.content?.parts?.[0]?.text;
-
-              if (textPart) {
-                accumulatedText += textPart;
-                setCurrentStreamingAiText(accumulatedText);
-              }
-            } catch (e) {
-              console.warn("Parse skip:", line);
-            }
-          }
+          const chunk = decoder.decode(value, { stream: true });
+          accumulatedText += chunk;
+          setCurrentStreamingAiText(accumulatedText); // Update the streaming text state
         }
 
-        // final commit
-        if (accumulatedText) {
-          setMessages(prev => [...prev, { role: 'ai', text: accumulatedText }]);
-          setCurrentStreamingAiText('');
-        }
+        // After the stream is done, add the complete message to the messages array
+        setMessages((prev) => [...prev, { role: 'ai', text: accumulatedText }]);
+        setCurrentStreamingAiText(''); // Clear the streaming text state
       } catch (error) {
         console.error('Error fetching response:', error);
         // If an error occurs, add an error message to the main messages array
@@ -171,8 +137,8 @@ function App() {
                 <div
                   key={index}
                   className={`max-w-[85%] px-4 py-2 ${msg.role === 'user'
-                    ? 'self-end bg-slate-200 text-slate-800 rounded-2xl'
-                    : 'self-start bg-transparent text-slate-900'
+                      ? 'self-end bg-slate-200 text-slate-800 rounded-2xl'
+                      : 'self-start bg-transparent text-slate-900'
                     }`}
                 >
                   {msg.role === 'user' ? (
