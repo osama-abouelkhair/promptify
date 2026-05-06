@@ -56,8 +56,6 @@ function App() {
 
           // Decode current chunk and add to buffer
           buffer += decoder.decode(value, { stream: true });
-          
-          buffer += decoder.decode(value, { stream: true });
 
           // Logic to find and parse complete JSON objects within the stream
           // This works even if the JSON is pretty-printed or wrapped in an array [ ... ]
@@ -73,13 +71,15 @@ function App() {
               const potentialJson = buffer.substring(start, end + 1);
               try {
                 const parsed = JSON.parse(potentialJson);
-                // Safely extract the specific field using optional chaining
-                const fieldContent = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (fieldContent) {
-                  accumulatedText += fieldContent;
-                  setCurrentStreamingAiText(accumulatedText);
-                }
+
+                parsed.candidates?.forEach((candidate: any) => {
+                  candidate.content?.parts?.forEach((part: any) => {
+                    if (part.text) {
+                      accumulatedText += part.text;
+                    }
+                  });
+                });
+                setCurrentStreamingAiText(accumulatedText);
 
                 startIndex = end + 1;
                 foundValidObject = true;
