@@ -57,37 +57,43 @@ function App() {
           // Decode current chunk and add to buffer
           buffer += decoder.decode(value, { stream: true });
           
-          // Split by newline assuming your API sends one JSON object per line (NDJSON)
-          const lines = buffer.split('\n');
-          
-          // Pop the last element: if the buffer ended with \n, it's empty.
-          // If not, it's a partial JSON string we need to keep for the next read.
-          buffer = lines.pop() || '';
+          buffer += decoder.decode(value, { stream: true });
 
-          for (const line of lines) {
-            if (line.trim()) {
+          // Logic to find and parse complete JSON objects within the stream
+          // This works even if the JSON is pretty-printed or wrapped in an array [ ... ]
+          let startIndex = 0;
+          while (true) {
+            const start = buffer.indexOf('{', startIndex);
+            if (start === -1) break;
+
+            let end = buffer.indexOf('}', start);
+            let foundValidObject = false;
+
+            while (end !== -1) {
+              const potentialJson = buffer.substring(start, end + 1);
               try {
-                const parsed = JSON.parse(line);
-                // Change 'text' to the specific field name you want to display
-                const fieldContent = parsed.candidates[0].content.parts[0].text // || parsed.content || parsed.response || '';
-                accumulatedText += fieldContent;
-                setCurrentStreamingAiText(accumulatedText); 
-              } catch (e) {
-                console.warn('Could not parse JSON line:', line);
+                const parsed = JSON.parse(potentialJson);
+                // Safely extract the specific field using optional chaining
+                const fieldContent = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (fieldContent) {
+                  accumulatedText += fieldContent;
+                  setCurrentStreamingAiText(accumulatedText);
+                }
+
+                startIndex = end + 1;
+                foundValidObject = true;
+                break; // Found a valid object, stop looking for higher-level closing braces
+              } catch {
+                // Not a complete JSON yet, keep looking for the next closing brace
+                end = buffer.indexOf('}', end + 1);
               }
             }
-          }
-        }
 
-        // Final check: if there is anything left in the buffer that didn't end with a newline
-        if (buffer.trim()) {
-          try {
-            const parsed = JSON.parse(buffer);
-            accumulatedText += (parsed.text || parsed.content || parsed.response || '');
-          } catch (e) {
-            // If your API sends raw text at the end, append it as a fallback
-            // accumulatedText += buffer; 
+            if (!foundValidObject) break;
           }
+          // Clean up the buffer to keep only the unprocessed tail
+          buffer = buffer.substring(startIndex);
         }
 
         // After the stream is done, add the complete message to the messages array
