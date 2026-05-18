@@ -30,7 +30,7 @@ function App() {
 
       try {
         const token = await getToken();
-        const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws', {
+        const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/75945356-2a6f-4893-8cbb-79ba73c2ad67', {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain',
