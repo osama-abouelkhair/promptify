@@ -11,11 +11,19 @@ function App() {
   const [prompts, setPrompts] = useState<{ name: string, id: string }[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
 
+  const { getToken } = useAuth();
+
   // Fetch prompts on component mount
   useEffect(() => {
     const fetchPrompts = async () => {
       try {
-        const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/prompts');
+        const token = await getToken();
+        const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/prompts', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           console.log(data);
@@ -29,9 +37,8 @@ function App() {
       }
     };
     fetchPrompts();
-  }, []);
+  }, [getToken]);
 
-  const { getToken } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
 
   // Effect to scroll to the bottom whenever messages change or streaming text updates
