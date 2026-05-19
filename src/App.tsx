@@ -8,6 +8,29 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
   const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
+  const [prompts, setPrompts] = useState<{ name: string, id: string }[]>([]);
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
+
+  // Fetch prompts on component mount
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/prompts');
+        if (response.ok) {
+          const data = await response.json();
+          console.log(data);
+          setPrompts(data);
+          if (data.length > 0) {
+            setSelectedPromptId(data[0].id); // Select the first prompt by default
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching prompts:', error);
+      }
+    };
+    fetchPrompts();
+  }, []);
+
   const { getToken } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
 
@@ -19,7 +42,7 @@ function App() {
   }, [messages, currentStreamingAiText]);
 
   const handleSubmit = useCallback(async () => {
-    if (inputValue.trim()) {
+    if (inputValue.trim() && selectedPromptId) {
       const text = inputValue;
       const userMsg = { role: 'user' as const, text };
       setMessages((prev) => [...prev, userMsg]);
@@ -30,7 +53,7 @@ function App() {
 
       try {
         const token = await getToken();
-        const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/75945356-2a6f-4893-8cbb-79ba73c2ad67', {
+        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/${selectedPromptId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain',
@@ -107,7 +130,7 @@ function App() {
         setCurrentStreamingAiText(''); // Clear streaming text on error
       }
     }
-  }, [inputValue, getToken]);
+  }, [inputValue, getToken, selectedPromptId]);
 
   return (
     <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
@@ -133,12 +156,23 @@ function App() {
           </button>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <a href="#" className="flex items-center gap-3 px-4 py-2 rounded-md bg-slate-800 text-white font-medium">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            JPA
-          </a>
+          {prompts.map((prompt) => (
+            <button
+              key={prompt.id}
+              onClick={() => {
+                setSelectedPromptId(prompt.id);
+                setIsSidebarOpen(false); // Close sidebar on mobile after selection
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${
+                selectedPromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              {prompt.name}
+            </button>
+          ))}
         </nav>
       </aside>
 
@@ -208,7 +242,7 @@ function App() {
               <div className="flex items-center gap-3">
                 <input
                   type="text"
-                  placeholder="Use JPA to unlcok a better answer"
+                  placeholder={`Use ${prompts.find(p => p.id === selectedPromptId)?.name || 'JPA'} to unlock a better answer`}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-sm placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out"
