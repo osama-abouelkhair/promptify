@@ -96,9 +96,10 @@ function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Routes>
-          <Route path="/search" element={<SearchView getToken={getToken} />} />
+          <Route path="/search" element={<SearchView getToken={getToken} prompts={prompts} />} />
           <Route path="/chat" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/chat/:promptId" element={<ChatView getToken={getToken} prompts={prompts} />} />
+          <Route path="/chat/:promptId/:conversationId" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/" element={
             !authLoaded ? (
               <div className="p-8 text-slate-500">Initializing...</div>
@@ -113,7 +114,7 @@ function App() {
 }
 
 function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
-  const { promptId } = useParams();
+  const { promptId, conversationId } = useParams();
   const activePromptId = promptId || (prompts.length > 0 ? prompts[0].id : null);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
@@ -126,6 +127,40 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
     }
   }, [messages, currentStreamingAiText]);
 
+  // Load history when conversationId is present in URL
+  useEffect(() => {
+    if (!conversationId) {
+      setMessages([]);
+      return;
+    }
+
+    const fetchHistory = async () => {
+      try {
+        const token = await getToken();
+        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/conversations/${conversationId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.contents && Array.isArray(data.contents)) {
+            // Map API response to internal message format
+            const history = data.contents.map((item: any) => ({
+              role: item.role === 'model' ? 'ai' : 'user',
+              text: item.parts.map((p: any) => p.text).join('')
+            }));
+            setMessages(history);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching history:', error);
+      }
+    };
+
+    fetchHistory();
+  }, [conversationId, getToken]);
+
   const handleSubmit = useCallback(async () => {
     if (inputValue.trim() && activePromptId) {
       const text = inputValue;
@@ -136,9 +171,8 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 
       let accumulatedText = ''; // Local variable to accumulate text before updating state
 
-      const params = new URLSearchParams({
-        conversation_id: '32289558-655b-4cdd-8586-e474583c5b91',
-      });
+      const params = new URLSearchParams();
+      if (conversationId) params.append('conversation_id', conversationId);
 
       try {
         const token = await getToken();
@@ -216,7 +250,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
         setCurrentStreamingAiText(''); // Clear streaming text on error
       }
     }
-  }, [inputValue, getToken, promptId]);
+  }, [inputValue, getToken, activePromptId, conversationId]);
 
   return (
     <>
@@ -284,7 +318,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   );
 }
 
-function SearchView({ getToken }: { getToken: any }) {
+function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   const [conversations, setConversations] = useState<{ id: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -322,10 +356,14 @@ function SearchView({ getToken }: { getToken: any }) {
         ) : (
           <div className="grid gap-4">
             {Array.isArray(conversations) && conversations.map((conv) => (
-              <div key={conv.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all">
+              <Link
+                key={conv.id}
+                to={`/chat/${prompts[0]?.id || 'default'}/${conv.id}`}
+                className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all block group"
+              >
                 <h3 className="font-semibold text-slate-900">{conv.id.split('_').slice(1).join('_') || 'Untitled Chat'}</h3>
                 <p className="text-xs text-slate-500 mt-1">ID: {conv.id}</p>
-              </div>
+              </Link>
             ))}
           </div>
         )}
