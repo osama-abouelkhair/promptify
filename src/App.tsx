@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback, memo } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import { Show, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
 import ReactMarkdown from 'react-markdown'
-import { Routes, Route, Link, useParams, useNavigate, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Link, useParams, Navigate, useLocation } from 'react-router-dom'
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
