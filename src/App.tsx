@@ -28,7 +28,9 @@ function App() {
         });
         if (response.ok) {
           const data = await response.json();
-          setPrompts(data);
+          if (Array.isArray(data)) {
+            setPrompts(data);
+          }
         }
       } catch (error) {
         console.error('Error fetching prompts:', error);
@@ -73,7 +75,7 @@ function App() {
             Search chats
           </Link>
           <div className="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Prompts</div>
-          {prompts.map((prompt) => (
+          {Array.isArray(prompts) && prompts.map((prompt) => (
             <Link
               key={prompt.id}
               to={`/chat/${prompt.id}`}
@@ -222,7 +224,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
           <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0 mt-4 md:mt-0">
             <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-900">Promptify</h1>
             <div className="flex items-center gap-4">
-              <Show when="signed-out">
+              <Show when={"signed-out"}>
                 <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
                   <SignInButton mode="modal">
                     <button className="px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg cursor-pointer transition-all">Sign In</button>
@@ -232,7 +234,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
                   </SignUpButton>
                 </div>
               </Show>
-              <Show when="signed-in">
+              <Show when={"signed-in"}>
                 <UserButton />
               </Show>
             </div>
@@ -262,7 +264,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
             <div className="flex items-center gap-3">
               <input
                 type="text"
-                placeholder={`Use ${prompts.find(p => p.id === promptId)?.name || 'Prompt'} to unlock a better answer`}
+                placeholder={`Use ${Array.isArray(prompts) ? (prompts.find(p => p.id === promptId)?.name || 'Prompt') : 'Prompt'} to unlock a better answer`}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-sm placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out"
@@ -297,7 +299,9 @@ function SearchView({ getToken }: { getToken: any }) {
         });
         if (response.ok) {
           const data = await response.json();
-          setConversations(data);
+          if (Array.isArray(data)) {
+            setConversations(data);
+          }
         }
       } catch (error) {
         console.error('Error fetching conversations:', error);
@@ -316,7 +320,7 @@ function SearchView({ getToken }: { getToken: any }) {
           <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div></div>
         ) : (
           <div className="grid gap-4">
-            {conversations.map((conv) => (
+            {Array.isArray(conversations) && conversations.map((conv) => (
               <div key={conv.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all">
                 <h3 className="font-semibold text-slate-900">{conv.name || 'Untitled Chat'}</h3>
                 <p className="text-xs text-slate-500 mt-1">ID: {conv.id}</p>
