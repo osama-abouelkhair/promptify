@@ -55,12 +55,16 @@ function App() {
       setMessages((prev) => [...prev, userMsg]);
       setInputValue('');
       setCurrentStreamingAiText('');
-        
+
       let accumulatedText = ''; // Local variable to accumulate text before updating state
+
+      const params = new URLSearchParams({
+        conversation_id: '32289558-655b-4cdd-8586-e474583c5b91',
+      });
 
       try {
         const token = await getToken();
-        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/${selectedPromptId}`, {
+        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/${selectedPromptId}?${params.toString()}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain',
@@ -170,9 +174,8 @@ function App() {
                 setSelectedPromptId(prompt.id);
                 setIsSidebarOpen(false); // Close sidebar on mobile after selection
               }}
-              className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${
-                selectedPromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${selectedPromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -215,8 +218,8 @@ function App() {
                 <div
                   key={index}
                   className={`max-w-[85%] px-4 py-2 ${msg.role === 'user'
-                      ? 'self-end bg-slate-200 text-slate-800 rounded-2xl'
-                      : 'self-start bg-transparent text-slate-900'
+                    ? 'self-end bg-slate-200 text-slate-800 rounded-2xl'
+                    : 'self-start bg-transparent text-slate-900'
                     }`}
                 >
                   {msg.role === 'user' ? (
