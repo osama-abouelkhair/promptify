@@ -11,7 +11,8 @@ function App() {
   const location = useLocation();
 
   // Extract promptId from path since useParams won't work outside of a Route component
-  const currentPromptId = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
+  const currentPromptIdFromUrl = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
+  const activePromptId = currentPromptIdFromUrl || (location.pathname === '/chat' && prompts.length > 0 ? prompts[0].id : null);
 
   // Fetch prompts on component mount
   useEffect(() => {
@@ -80,7 +81,7 @@ function App() {
               key={prompt.id}
               to={`/chat/${prompt.id}`}
               onClick={() => setIsSidebarOpen(false)}
-              className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${currentPromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${activePromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
                 }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -96,14 +97,13 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Routes>
           <Route path="/search" element={<SearchView getToken={getToken} />} />
+          <Route path="/chat" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/chat/:promptId" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/" element={
             !authLoaded ? (
               <div className="p-8 text-slate-500">Initializing...</div>
-            ) : (isSignedIn && prompts.length > 0) ? (
-              <Navigate to={`/chat/${prompts[0].id}`} replace />
             ) : (
-              <ChatView getToken={getToken} prompts={prompts} />
+              <Navigate to="/chat" replace />
             )
           } />
         </Routes>
@@ -114,6 +114,7 @@ function App() {
 
 function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   const { promptId } = useParams();
+  const activePromptId = promptId || (prompts.length > 0 ? prompts[0].id : null);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
   const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
@@ -126,7 +127,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   }, [messages, currentStreamingAiText]);
 
   const handleSubmit = useCallback(async () => {
-    if (inputValue.trim() && promptId) {
+    if (inputValue.trim() && activePromptId) {
       const text = inputValue;
       const userMsg = { role: 'user' as const, text };
       setMessages((prev) => [...prev, userMsg]);
@@ -141,7 +142,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 
       try {
         const token = await getToken();
-        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/${promptId}?${params.toString()}`, {
+        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/${activePromptId}?${params.toString()}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain',
@@ -264,7 +265,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
             <div className="flex items-center gap-3">
               <input
                 type="text"
-                placeholder={`Use ${Array.isArray(prompts) ? (prompts.find(p => p.id === promptId)?.name || 'Prompt') : 'Prompt'} to unlock a better answer`}
+                placeholder={`Use ${Array.isArray(prompts) ? (prompts.find(p => p.id === activePromptId)?.name || 'Prompt') : 'Prompt'} to unlock a better answer`}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-sm placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out"
@@ -284,7 +285,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 }
 
 function SearchView({ getToken }: { getToken: any }) {
-  const [conversations, setConversations] = useState<{ name: string, id: string }[]>([]);
+  const [conversations, setConversations] = useState<{ id: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -322,7 +323,7 @@ function SearchView({ getToken }: { getToken: any }) {
           <div className="grid gap-4">
             {Array.isArray(conversations) && conversations.map((conv) => (
               <div key={conv.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all">
-                <h3 className="font-semibold text-slate-900">{conv.name || 'Untitled Chat'}</h3>
+                <h3 className="font-semibold text-slate-900">{conv.id.split('_').slice(1).join('_') || 'Untitled Chat'}</h3>
                 <p className="text-xs text-slate-500 mt-1">ID: {conv.id}</p>
               </div>
             ))}
