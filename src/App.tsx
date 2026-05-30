@@ -1,20 +1,22 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import './App.css'
 import { Show, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
 import ReactMarkdown from 'react-markdown'
+import { Routes, Route, Link, useParams, useNavigate, Navigate, useLocation } from 'react-router-dom'
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
-  const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
   const [prompts, setPrompts] = useState<{ name: string, id: string }[]>([]);
-  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
+  const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
+  const location = useLocation();
 
-  const { getToken } = useAuth();
+  // Extract promptId from path since useParams won't work outside of a Route component
+  const currentPromptId = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
 
   // Fetch prompts on component mount
   useEffect(() => {
+    if (!authLoaded || !isSignedIn) return;
+
     const fetchPrompts = async () => {
       try {
         const token = await getToken();
@@ -26,22 +28,95 @@ function App() {
         });
         if (response.ok) {
           const data = await response.json();
-          console.log(data);
           setPrompts(data);
-          if (data.length > 0) {
-            setSelectedPromptId(data[0].id); // Select the first prompt by default
-          }
         }
       } catch (error) {
         console.error('Error fetching prompts:', error);
       }
     };
     fetchPrompts();
-  }, [getToken]);
+  }, [getToken, authLoaded, isSignedIn]);
 
+  return (
+    <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
+      {/* Floating Menu Toggle for Mobile */}
+      <button
+        onClick={() => setIsSidebarOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-40 p-2 bg-white text-slate-800 rounded-lg shadow-md border border-slate-200 hover:bg-slate-50 transition-colors"
+        aria-label="Open Sidebar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+
+      {/* Sidebar Component */}
+      <aside className={`${isSidebarOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-64 bg-slate-800 text-slate-100 fixed md:static inset-0 z-50 md:z-auto transition-all`}>
+        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+          <span className="text-2xl font-bold tracking-tight">App</span>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-slate-400 hover:text-white" aria-label="Close Sidebar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <nav className="flex-1 p-4 space-y-2">
+          <Link
+            to="/search"
+            onClick={() => setIsSidebarOpen(false)}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left text-slate-400 hover:text-white hover:bg-slate-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            Search chats
+          </Link>
+          <div className="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Prompts</div>
+          {prompts.map((prompt) => (
+            <Link
+              key={prompt.id}
+              to={`/chat/${prompt.id}`}
+              onClick={() => setIsSidebarOpen(false)}
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${currentPromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              {prompt.name}
+            </Link>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Routes>
+          <Route path="/search" element={<SearchView getToken={getToken} />} />
+          <Route path="/chat/:promptId" element={<ChatView getToken={getToken} prompts={prompts} />} />
+          <Route path="/" element={
+            !authLoaded ? (
+              <div className="p-8 text-slate-500">Initializing...</div>
+            ) : (isSignedIn && prompts.length > 0) ? (
+              <Navigate to={`/chat/${prompts[0].id}`} replace />
+            ) : (
+              <ChatView getToken={getToken} prompts={prompts} />
+            )
+          } />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
+  const { promptId } = useParams();
+  const [inputValue, setInputValue] = useState('');
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
+  const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
 
-  // Effect to scroll to the bottom whenever messages change or streaming text updates
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
@@ -49,7 +124,7 @@ function App() {
   }, [messages, currentStreamingAiText]);
 
   const handleSubmit = useCallback(async () => {
-    if (inputValue.trim() && selectedPromptId) {
+    if (inputValue.trim() && promptId) {
       const text = inputValue;
       const userMsg = { role: 'user' as const, text };
       setMessages((prev) => [...prev, userMsg]);
@@ -64,7 +139,7 @@ function App() {
 
       try {
         const token = await getToken();
-        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/${selectedPromptId}?${params.toString()}`, {
+        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/ask/${promptId}?${params.toString()}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain',
@@ -72,9 +147,6 @@ function App() {
           },
           body: JSON.stringify({ prompt: text })
         });
-
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
 
 
         if (!response.ok) throw new Error('Network response was not ok');
@@ -141,135 +213,118 @@ function App() {
         setCurrentStreamingAiText(''); // Clear streaming text on error
       }
     }
-  }, [inputValue, getToken, selectedPromptId]);
+  }, [inputValue, getToken, promptId]);
 
   return (
-    <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
-      {/* Floating Menu Toggle for Mobile */}
-      <button
-        onClick={() => setIsSidebarOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-40 p-2 bg-white text-slate-800 rounded-lg shadow-md border border-slate-200 hover:bg-slate-50 transition-colors"
-        aria-label="Open Sidebar"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
-
-      {/* Sidebar Component */}
-      <aside className={`${isSidebarOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-64 bg-slate-800 text-slate-100 fixed md:static inset-0 z-50 md:z-auto transition-all`}>
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <span className="text-2xl font-bold tracking-tight">Prompts</span>
-          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-slate-400 hover:text-white" aria-label="Close Sidebar">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>
-        <nav className="flex-1 p-4 space-y-2">
-          {prompts.map((prompt) => (
-            <button
-              key={prompt.id}
-              onClick={() => {
-                setSelectedPromptId(prompt.id);
-                setIsSidebarOpen(false); // Close sidebar on mobile after selection
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${selectedPromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              {prompt.name}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-        {/* Content Container */}
-        <div ref={messagesEndRef} className="flex-1 px-8 pb-8 pt-2 md:pt-8 overflow-y-auto"> {/* Attach the ref here */}
-          <div className="w-full space-y-8">
-
-            <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0 mt-4 md:mt-0">
-              <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-900">Promptify</h1>
-              <div className="flex items-center gap-4">
-                <Show when="signed-out">
-                  <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
-                    <SignInButton mode="modal">
-                      <button className="px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg cursor-pointer transition-all">Sign In</button>
-                    </SignInButton>
-                    <SignUpButton mode="modal">
-                      <button className="px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 cursor-pointer transition-all shadow-sm">Sign Up</button>
-                    </SignUpButton>
-                  </div>
-                </Show>
-                <Show when="signed-in">
-                  <UserButton />
-                </Show>
-              </div>
+    <>
+      <div ref={messagesEndRef} className="flex-1 px-8 pb-8 pt-2 md:pt-8 overflow-y-auto">
+        <div className="w-full space-y-8">
+          <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0 mt-4 md:mt-0">
+            <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-900">Promptify</h1>
+            <div className="flex items-center gap-4">
+              <Show when="signed-out">
+                <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
+                  <SignInButton mode="modal">
+                    <button className="px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg cursor-pointer transition-all">Sign In</button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button className="px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 cursor-pointer transition-all shadow-sm">Sign Up</button>
+                  </SignUpButton>
+                </div>
+              </Show>
+              <Show when="signed-in">
+                <UserButton />
+              </Show>
             </div>
+          </div>
 
-            {/* Message List */}
-            <div className="flex flex-col space-y-6">
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`max-w-[85%] px-4 py-2 ${msg.role === 'user'
-                    ? 'self-end bg-slate-200 text-slate-800 rounded-2xl'
-                    : 'self-start bg-transparent text-slate-900'
-                    }`}
-                >
-                  {msg.role === 'user' ? (
-                    <p className="leading-relaxed">{msg.text}</p>
-                  ) : (
-                    <div className="leading-relaxed prose prose-slate max-w-none text-slate-900">
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {/* Render the currently streaming AI text */}
-              {currentStreamingAiText && (
-                <div
-                  className={`max-w-[85%] px-4 py-2 self-start bg-transparent text-slate-900`}
-                >
-                  <div className="leading-relaxed prose prose-slate max-w-none text-slate-900">
-                    <ReactMarkdown>{currentStreamingAiText}</ReactMarkdown>
-                  </div>
-                </div>
-              )}
+          <div className="flex flex-col space-y-6">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`max-w-[85%] px-4 py-2 ${msg.role === 'user' ? 'self-end bg-slate-200 text-slate-800 rounded-2xl' : 'self-start bg-transparent text-slate-900'}`}
+              >
+                {msg.role === 'user' ? <p className="leading-relaxed">{msg.text}</p> : <div className="leading-relaxed prose prose-slate max-w-none text-slate-900"><ReactMarkdown>{msg.text}</ReactMarkdown></div>}
+              </div>
+            ))}
+            {currentStreamingAiText && (
+              <div className="max-w-[85%] px-4 py-2 self-start bg-transparent text-slate-900">
+                <div className="leading-relaxed prose prose-slate max-w-none text-slate-900"><ReactMarkdown>{currentStreamingAiText}</ReactMarkdown></div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-slate-50 border-t border-slate-200">
+        <div className="w-full">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                placeholder={`Use ${prompts.find(p => p.id === promptId)?.name || 'Prompt'} to unlock a better answer`}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-sm placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out"
+              />
+              <button
+                onClick={handleSubmit}
+                className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900 text-sm font-medium rounded-lg focus:outline-none cursor-pointer transition-all duration-200 ease-in-out shadow-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+              </button>
             </div>
           </div>
         </div>
+      </div>
+    </>
+  );
+}
 
-        {/* Form/Action Card - Fixed at bottom */}
-        <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-slate-50 border-t border-slate-200">
-          <div className="w-full">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  placeholder={`Use ${prompts.find(p => p.id === selectedPromptId)?.name || 'JPA'} to unlock a better answer`}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-sm placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out"
-                />
-                <button
-                  onClick={handleSubmit}
-                  className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-900 text-sm font-medium rounded-lg focus:outline-none cursor-pointer transition-all duration-200 ease-in-out shadow-sm"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M12 19V5M5 12l7-7 7 7" />
-                  </svg>
-                </button>
+function SearchView({ getToken }: { getToken: any }) {
+  const [conversations, setConversations] = useState<{ name: string, id: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const token = await getToken();
+        const response = await fetch('https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/conversations', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setConversations(data);
+        }
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchConversations();
+  }, [getToken]);
+
+  return (
+    <div className="flex-1 px-8 pt-8 overflow-y-auto bg-slate-50">
+      <div className="w-full max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-8">Conversations</h1>
+        {isLoading ? (
+          <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div></div>
+        ) : (
+          <div className="grid gap-4">
+            {conversations.map((conv) => (
+              <div key={conv.id} className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all">
+                <h3 className="font-semibold text-slate-900">{conv.name || 'Untitled Chat'}</h3>
+                <p className="text-xs text-slate-500 mt-1">ID: {conv.id}</p>
               </div>
-            </div>
+            ))}
           </div>
-        </div>
-      </main>
+        )}
+      </div>
     </div>
   );
 }
