@@ -107,6 +107,8 @@ function App() {
               <Navigate to="/chat" replace />
             )
           } />
+          {/* Catch-all route to handle internal 404s and redirect back to chat */}
+          <Route path="*" element={<Navigate to="/chat" replace />} />
         </Routes>
       </main>
     </div>
