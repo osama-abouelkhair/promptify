@@ -10,9 +10,10 @@ function App() {
   const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
   const location = useLocation();
 
-  // Extract promptId from path since useParams won't work outside of a Route component
-  const currentPromptIdFromUrl = location.pathname.startsWith('/chat/') ? location.pathname.split('/')[2] : null;
-  const activePromptId = currentPromptIdFromUrl || (location.pathname === '/chat' && prompts.length > 0 ? prompts[0].id : null);
+  // Determine if we are on a chat page and extract the ID safely
+  const isChatPath = location.pathname === '/' || location.pathname.startsWith('/chat');
+  const currentPromptIdFromUrl = location.pathname.split('/')[2];
+  const activePromptId = isChatPath ? (currentPromptIdFromUrl || (prompts.length > 0 ? prompts[0].id : null)) : null;
 
   // Fetch prompts on component mount
   useEffect(() => {
@@ -97,18 +98,15 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Routes>
           <Route path="/search" element={<SearchView getToken={getToken} prompts={prompts} />} />
-          <Route path="/chat" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/chat/:promptId" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/chat/:promptId/:conversationId" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/" element={
             !authLoaded ? (
               <div className="p-8 text-slate-500">Initializing...</div>
-            ) : (
-              <Navigate to="/chat" replace />
-            )
+            ) : <ChatView getToken={getToken} prompts={prompts} />
           } />
           {/* Catch-all route to handle internal 404s and redirect back to chat */}
-          <Route path="*" element={<Navigate to="/chat" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>

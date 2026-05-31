@@ -16,8 +16,8 @@ createRoot(document.getElementById('root')!).render(
     <ClerkProvider 
       publishableKey={PUBLISHABLE_KEY} 
       afterSignOutUrl="/"
-      signInFallbackRedirectUrl="/chat"
-      signUpFallbackRedirectUrl="/chat"
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
     >
       <BrowserRouter>
         <App />
