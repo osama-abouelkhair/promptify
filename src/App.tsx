@@ -125,6 +125,15 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
   const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-expand textarea based on content
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+    }
+  }, [inputValue]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -302,12 +311,19 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
         <div className="w-full">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <div className="flex items-center gap-3">
-              <input
-                type="text"
+              <textarea
+                ref={inputRef}
+                rows={1}
                 placeholder={`Use ${Array.isArray(prompts) ? (prompts.find(p => p.id === activePromptId)?.name || 'Prompt') : 'Prompt'} to unlock a better answer`}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-sm placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-sm placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out resize-none min-h-[40px] max-h-48 overflow-y-auto"
               />
               <button
                 onClick={handleSubmit}
