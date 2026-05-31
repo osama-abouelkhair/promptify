@@ -13,7 +13,7 @@ function App() {
   // Determine if we are on a chat page and extract the ID safely
   const isChatPath = location.pathname === '/' || location.pathname.startsWith('/chat');
   const currentPromptIdFromUrl = location.pathname.split('/')[2];
-  const activePromptId = isChatPath ? (currentPromptIdFromUrl || (prompts.length > 0 ? prompts[0].id : null)) : null;
+  const activePromptId = isChatPath ? (currentPromptIdFromUrl || location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null)) : null;
 
   // Fetch prompts on component mount
   useEffect(() => {
@@ -100,6 +100,7 @@ function App() {
           <Route path="/search" element={<SearchView getToken={getToken} prompts={prompts} />} />
           <Route path="/chat/:promptId" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/chat/:promptId/:conversationId" element={<ChatView getToken={getToken} prompts={prompts} />} />
+          <Route path="/chat" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/" element={
             !authLoaded ? (
               <div className="p-8 text-slate-500">Initializing...</div>
@@ -114,8 +115,12 @@ function App() {
 }
 
 function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
-  const { promptId, conversationId } = useParams();
-  const activePromptId = promptId || (prompts.length > 0 ? prompts[0].id : null);
+  const { promptId: paramPromptId, conversationId: paramConversationId } = useParams();
+  const location = useLocation();
+
+  const activePromptId = paramPromptId || location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
+  const conversationId = paramConversationId || location.state?.conversationId;
+
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
   const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
@@ -358,7 +363,8 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
             {Array.isArray(conversations) && conversations.map((conv) => (
               <Link
                 key={conv.id}
-                to={`/chat/${prompts[0]?.id || 'default'}/${conv.id}`}
+                to="/chat"
+                state={{ promptId: prompts[0]?.id || 'default', conversationId: conv.id }}
                 className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all block group"
               >
                 <h3 className="font-semibold text-slate-900">{conv.id.split('_').slice(1).join('_') || 'Untitled Chat'}</h3>
