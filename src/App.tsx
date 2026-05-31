@@ -10,10 +10,9 @@ function App() {
   const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
   const location = useLocation();
 
-  // Determine if we are on a chat page and extract the ID safely
-  const isChatPath = location.pathname === '/' || location.pathname.startsWith('/chat');
-  const currentPromptIdFromUrl = location.pathname.split('/')[2];
-  const activePromptId = isChatPath ? (currentPromptIdFromUrl || location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null)) : null;
+  // Determine if we are on the home/chat page
+  const isChatPath = location.pathname === '/';
+  const activePromptId = isChatPath ? (location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null)) : null;
 
   // Fetch prompts on component mount
   useEffect(() => {
@@ -80,7 +79,8 @@ function App() {
           {Array.isArray(prompts) && prompts.map((prompt) => (
             <Link
               key={prompt.id}
-              to={`/chat/${prompt.id}`}
+              to="/"
+              state={{ promptId: prompt.id }}
               onClick={() => setIsSidebarOpen(false)}
               className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${activePromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
                 }`}
@@ -98,9 +98,6 @@ function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Routes>
           <Route path="/search" element={<SearchView getToken={getToken} prompts={prompts} />} />
-          <Route path="/chat/:promptId" element={<ChatView getToken={getToken} prompts={prompts} />} />
-          <Route path="/chat/:promptId/:conversationId" element={<ChatView getToken={getToken} prompts={prompts} />} />
-          <Route path="/chat" element={<ChatView getToken={getToken} prompts={prompts} />} />
           <Route path="/" element={
             !authLoaded ? (
               <div className="p-8 text-slate-500">Initializing...</div>
@@ -115,11 +112,10 @@ function App() {
 }
 
 function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
-  const { promptId: paramPromptId, conversationId: paramConversationId } = useParams();
   const location = useLocation();
 
-  const activePromptId = paramPromptId || location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
-  const conversationId = paramConversationId || location.state?.conversationId;
+  const activePromptId = location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
+  const conversationId = location.state?.conversationId;
 
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
@@ -379,7 +375,7 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
             {Array.isArray(conversations) && conversations.map((conv) => (
               <Link
                 key={conv.id}
-                to="/chat"
+                to="/"
                 state={{ promptId: prompts[0]?.id || 'default', conversationId: conv.id }}
                 className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all block group"
               >
