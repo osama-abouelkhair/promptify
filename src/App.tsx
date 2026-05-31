@@ -65,6 +65,19 @@ function App() {
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <Link
+            to="/"
+            state={{ promptId: activePromptId || (prompts.length > 0 ? prompts[0].id : null) }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="w-full flex items-center gap-3 px-4 py-2 mb-4 rounded-md font-semibold transition-colors text-left bg-slate-100 text-slate-900 hover:bg-slate-200"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            New chat
+          </Link>
+
+          <Link
             to="/search"
             onClick={() => setIsSidebarOpen(false)}
             className="w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left text-slate-400 hover:text-white hover:bg-slate-700"
@@ -115,7 +128,13 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   const location = useLocation();
 
   const activePromptId = location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
-  const conversationId = location.state?.conversationId;
+  const conversationIdFromLocation = location.state?.conversationId;
+
+  const [internalConversationId, setInternalConversationId] = useState<string | undefined>(conversationIdFromLocation);
+
+  useEffect(() => {
+    setInternalConversationId(conversationIdFromLocation);
+  }, [conversationIdFromLocation]);
 
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
@@ -139,7 +158,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 
   // Load history when conversationId is present in URL
   useEffect(() => {
-    if (!conversationId) {
+    if (!conversationIdFromLocation) {
       setMessages([]);
       return;
     }
@@ -147,7 +166,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
     const fetchHistory = async () => {
       try {
         const token = await getToken();
-        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/conversations/${conversationId}`, {
+        const response = await fetch(`https://quypw3y73os462q7s5nh5kxh5q0rejdo.lambda-url.us-east-1.on.aws/conversations/${conversationIdFromLocation}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -169,7 +188,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
     };
 
     fetchHistory();
-  }, [conversationId, getToken]);
+  }, [conversationIdFromLocation, getToken]);
 
   const handleSubmit = useCallback(async () => {
     if (inputValue.trim() && activePromptId) {
@@ -182,7 +201,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
       let accumulatedText = ''; // Local variable to accumulate text before updating state
 
       const params = new URLSearchParams();
-      if (conversationId) params.append('conversation_id', conversationId);
+      if (internalConversationId) params.append('conversation_id', internalConversationId);
 
       try {
         const token = await getToken();
@@ -197,6 +216,13 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 
 
         if (!response.ok) throw new Error('Network response was not ok');
+
+        // Extract conversation ID from header for new chats
+        const xConvId = response.headers.get('X-Conversation-Id');
+        if (xConvId && !internalConversationId) {
+          setInternalConversationId(xConvId);
+        }
+
         if (!response.body) throw new Error('ReadableStream not supported');
 
         const reader = response.body.getReader();
@@ -260,7 +286,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
         setCurrentStreamingAiText(''); // Clear streaming text on error
       }
     }
-  }, [inputValue, getToken, activePromptId, conversationId]);
+  }, [inputValue, getToken, activePromptId, internalConversationId]);
 
   return (
     <>
