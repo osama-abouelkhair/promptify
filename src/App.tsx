@@ -345,7 +345,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
                     handleSubmit();
                   }
                 }}
-                className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-sm placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out resize-none min-h-[40px] max-h-48 overflow-y-auto"
+              className="flex-1 px-4 py-2 bg-slate-50 border-none rounded-lg text-base placeholder-slate-400 focus:outline-none transition-all duration-200 ease-in-out resize-none min-h-[40px] max-h-48 overflow-y-auto"
               />
               <button
                 onClick={handleSubmit}
