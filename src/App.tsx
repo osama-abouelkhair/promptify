@@ -362,7 +362,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 }
 
 function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
-  const [conversations, setConversations] = useState<{ id: string }[]>([]);
+  const [conversations, setConversations] = useState<{ id: string, lastmodified?: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -393,7 +393,7 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   return (
     <div className="flex-1 px-8 pt-8 overflow-y-auto bg-slate-50">
       <div className="w-full max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-8">Conversations</h1>
+        <h1 className="text-2xl font-bold mb-8 text-center md:text-left mt-12 md:mt-0">Conversations</h1>
         {isLoading ? (
           <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div></div>
         ) : (
@@ -405,8 +405,14 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
                 state={{ promptId: prompts[0]?.id || 'default', conversationId: conv.id }}
                 className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all block group"
               >
-                <h3 className="font-semibold text-slate-900">{conv.id.split('_').slice(1).join('_') || 'Untitled Chat'}</h3>
-                <p className="text-xs text-slate-500 mt-1">ID: {conv.id}</p>
+                <div className="flex justify-between items-start gap-4">
+                  <h3 className="font-semibold text-slate-900 truncate">
+                    {conv.id.split('_').slice(1).join('_') || 'Untitled Chat'}
+                  </h3>
+                  <span className="text-xs text-slate-500 whitespace-nowrap mt-1">
+                    {conv.lastmodified ? new Date(conv.lastmodified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                  </span>
+                </div>
               </Link>
             ))}
           </div>
