@@ -113,7 +113,7 @@ function App() {
           <Route path="/search" element={<SearchView getToken={getToken} prompts={prompts} />} />
           <Route path="/" element={
             !authLoaded ? (
-              <div className="p-8 text-slate-500">Initializing...</div>
+              <div className="p-4 md:p-8 text-slate-500">Initializing...</div>
             ) : <ChatView getToken={getToken} prompts={prompts} />
           } />
           {/* Catch-all route to handle internal 404s and redirect back to chat */}
@@ -290,7 +290,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 
   return (
     <>
-      <div ref={messagesEndRef} className="flex-1 px-8 pb-8 pt-2 md:pt-8 overflow-y-auto">
+      <div ref={messagesEndRef} className="flex-1 px-4 md:px-8 pb-8 pt-2 md:pt-8 overflow-y-auto">
         <div className="w-full space-y-8">
           <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0 mt-4 md:mt-0">
             <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-900">Promptify</h1>
@@ -331,7 +331,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 
       <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-slate-50 border-t border-slate-200">
         <div className="w-full">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
             <div className="flex items-center gap-3">
               <textarea
                 ref={inputRef}
@@ -391,7 +391,7 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   }, [getToken]);
 
   return (
-    <div className="flex-1 px-8 pt-8 overflow-y-auto bg-slate-50">
+    <div className="flex-1 px-4 md:px-8 pt-8 overflow-y-auto bg-slate-50">
       <div className="w-full max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-8 text-center md:text-left mt-12 md:mt-0">Conversations</h1>
         {isLoading ? (
