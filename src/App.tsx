@@ -362,7 +362,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 }
 
 function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
-  const [conversations, setConversations] = useState<{ id: string, lastmodified?: string }[]>([]);
+  const [conversations, setConversations] = useState<{ id: string, lastModified?: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -410,7 +410,7 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
                     {conv.id.split('_').slice(1).join('_') || 'Untitled Chat'}
                   </h3>
                   <span className="text-xs text-slate-500 whitespace-nowrap mt-1">
-                    {conv.lastmodified ? new Date(conv.lastmodified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                    {conv.lastModified ? new Date(conv.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
                   </span>
                 </div>
               </Link>
