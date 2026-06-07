@@ -405,8 +405,8 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
                 state={{ promptId: prompts[0]?.id || 'default', conversationId: conv.id }}
                 className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all block group"
               >
-                <div className="flex justify-between items-start gap-4">
-                  <h3 className="font-semibold text-slate-900 truncate">
+                <div className="flex justify-between items-start gap-4 min-w-0">
+                  <h3 className="font-semibold text-slate-900 truncate min-w-0">
                     {conv.id.split('_').slice(1).join('_') || 'Untitled Chat'}
                   </h3>
                   <span className="text-xs text-slate-500 whitespace-nowrap mt-1">
