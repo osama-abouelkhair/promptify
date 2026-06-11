@@ -10,9 +10,9 @@ function App() {
   const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
   const location = useLocation();
 
-  // Determine if we are on the home/chat page
-  const isChatPath = location.pathname === '/';
-  const activePromptId = isChatPath ? (location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null)) : null;
+  // Determine the current view and active prompt
+  const currentView = location.state?.view || 'chat';
+  const activePromptId = location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
 
   // Fetch prompts on component mount
   useEffect(() => {
@@ -66,7 +66,7 @@ function App() {
         <nav className="flex-1 p-4 space-y-2">
           <Link
             to="/"
-            state={{ promptId: activePromptId || (prompts.length > 0 ? prompts[0].id : null) }}
+            state={{ view: 'chat', promptId: activePromptId || (prompts.length > 0 ? prompts[0].id : null) }}
             onClick={() => setIsSidebarOpen(false)}
             className="w-full flex items-center gap-3 px-4 py-2 mb-4 rounded-md font-semibold transition-colors text-left bg-slate-100 text-slate-900 hover:bg-slate-200"
           >
@@ -78,7 +78,8 @@ function App() {
           </Link>
 
           <Link
-            to="/search"
+            to="/"
+            state={{ view: 'search' }}
             onClick={() => setIsSidebarOpen(false)}
             className="w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left text-slate-400 hover:text-white hover:bg-slate-700"
           >
@@ -93,7 +94,7 @@ function App() {
             <Link
               key={prompt.id}
               to="/"
-              state={{ promptId: prompt.id }}
+              state={{ view: 'chat', promptId: prompt.id }}
               onClick={() => setIsSidebarOpen(false)}
               className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${activePromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
                 }`}
@@ -110,11 +111,14 @@ function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Routes>
-          <Route path="/search" element={<SearchView getToken={getToken} prompts={prompts} />} />
           <Route path="/" element={
             !authLoaded ? (
               <div className="p-4 md:p-8 text-slate-500">Initializing...</div>
-            ) : <ChatView getToken={getToken} prompts={prompts} />
+            ) : currentView === 'search' ? (
+              <SearchView getToken={getToken} prompts={prompts} />
+            ) : (
+              <ChatView getToken={getToken} prompts={prompts} />
+            )
           } />
           {/* Catch-all route to handle internal 404s and redirect back to chat */}
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -402,7 +406,7 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
               <Link
                 key={conv.id}
                 to="/"
-                state={{ promptId: prompts[0]?.id || 'default', conversationId: conv.id }}
+                state={{ view: 'chat', promptId: prompts[0]?.id || 'default', conversationId: conv.id }}
                 className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all block group"
               >
                 <div className="flex justify-between items-start gap-4 min-w-0">
