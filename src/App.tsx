@@ -3,6 +3,7 @@ import './App.css'
 import { Show, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
 import ReactMarkdown from 'react-markdown'
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -42,6 +43,14 @@ function App() {
 
   return (
     <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
+      <Helmet>
+        <title>Promptify - AI Chat & Expert Prompts</title>
+        <meta name="description" content="Unlock the power of AI with Promptify. Use expert-crafted prompts to get better answers from AI." />
+        <link rel="canonical" href={window.location.origin} />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Helmet>
+
       {/* Floating Menu Toggle for Mobile */}
       <button
         onClick={() => setIsSidebarOpen(true)}
@@ -144,6 +153,10 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
   const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
+
+  const activePrompt = prompts.find(p => p.id === activePromptId);
+  const pageTitle = activePrompt ? `${activePrompt.name} | Promptify AI` : 'Chat | Promptify AI';
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-expand textarea based on content
@@ -294,10 +307,30 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 
   return (
     <>
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={`Chat with our AI using the ${activePrompt?.name || 'custom'} prompt template for high-quality results.`} />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Promptify AI",
+            "operatingSystem": "Web",
+            "applicationCategory": "EducationalApplication",
+            "description": "An AI chatbot interface utilizing specialized prompts for better output.",
+            "featureList": prompts.map(p => p.name).join(", ")
+          })}
+        </script>
+      </Helmet>
+
       <div ref={messagesEndRef} className="flex-1 px-4 md:px-8 pb-8 pt-2 md:pt-8 overflow-y-auto">
-        <div className="w-full space-y-8">
+        <div className="w-full space-y-8" role="log" aria-label="Chat history">
           <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0 mt-4 md:mt-0">
-            <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-900">Promptify</h1>
+            <header>
+               <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-900">
+                 {activePrompt ? activePrompt.name : 'Promptify'}
+               </h1>
+            </header>
             <div className="flex items-center gap-4">
               <Show when={"signed-out"}>
                 <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -319,6 +352,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
             {messages.map((msg, index) => (
               <div
                 key={index}
+                component="article"
                 className={`max-w-[85%] px-4 py-2 ${msg.role === 'user' ? 'self-end bg-slate-200 text-slate-800 rounded-2xl' : 'self-start bg-transparent text-slate-900'}`}
               >
                 {msg.role === 'user' ? <p className="leading-relaxed">{msg.text}</p> : <div className="leading-relaxed prose prose-slate max-w-none text-slate-900"><ReactMarkdown>{msg.text}</ReactMarkdown></div>}
@@ -366,6 +400,7 @@ function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 }
 
 function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
+  const pageTitle = "Search Conversations | Promptify AI";
   const [conversations, setConversations] = useState<{ id: string, lastModified?: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -396,8 +431,12 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
 
   return (
     <div className="flex-1 px-4 md:px-8 pt-8 overflow-y-auto bg-slate-50">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content="Browse and search through your previous AI conversations on Promptify." />
+      </Helmet>
       <div className="w-full max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-8 text-center md:text-left mt-12 md:mt-0">Conversations</h1>
+        <h1 className="text-2xl font-bold mb-8 text-center md:text-left mt-12 md:mt-0">Your Conversations</h1>
         {isLoading ? (
           <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div></div>
         ) : (

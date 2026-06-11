@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { ClerkProvider } from '@clerk/react'
 import { BrowserRouter } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -19,9 +20,11 @@ createRoot(document.getElementById('root')!).render(
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
     >
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <HelmetProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </HelmetProvider>
     </ClerkProvider>
   </StrictMode>,
 )
