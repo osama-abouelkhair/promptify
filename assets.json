@@ -1,0 +1,27 @@
+{
+  "_chunk-COv5agXF.js": {
+    "file": "assets/chunks/chunk-COv5agXF.js",
+    "name": "renderPageClient"
+  },
+  "node_modules/vike/dist/client/runtime-client-routing/entry.js": {
+    "file": "assets/entries/entry-client-routing.DO5B2-pC.js",
+    "name": "entries/entry-client-routing",
+    "src": "node_modules/vike/dist/client/runtime-client-routing/entry.js",
+    "isEntry": true,
+    "imports": [
+      "_chunk-COv5agXF.js"
+    ],
+    "dynamicImports": [
+      "virtual:vike:page-entry:client:ROOT"
+    ]
+  },
+  "virtual:vike:page-entry:client:ROOT": {
+    "file": "assets/entries/root.CS1BMEyD.js",
+    "name": "entries/root",
+    "src": "virtual:vike:page-entry:client:ROOT",
+    "isEntry": true,
+    "imports": [
+      "_chunk-COv5agXF.js"
+    ]
+  }
+}
