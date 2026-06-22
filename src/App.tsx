@@ -61,10 +61,7 @@ function App() {
         <div className="w-full max-w-[min(100%,40rem)] rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.35)]">
           <div className="text-center mx-auto max-w-[min(100%,34rem)] px-4">
             <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">Promptify</span>
-            <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Sign in to access AI chat</h1>
-            <p className="mt-4 text-sm leading-6 text-slate-600 sm:text-base">
-              Secure your conversations, save prompts, and keep everything private. Sign in or create an account to continue.
-            </p>
+            <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Sign in to unlock better answers</h1>
           </div>
 
           <div className="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-1 shadow-sm">
@@ -77,7 +74,7 @@ function App() {
 
           <div className="mt-6 flex flex-col gap-4 text-center text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
             <p>
-              New here? Create an account and start chatting with AI instantly.
+              New here? Create an account to unlock better answers.
             </p>
             <SignUpButton mode="modal">
               <button className="inline-flex justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400">
@@ -93,7 +90,7 @@ function App() {
   return (
     <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
       <Helmet>
-        <title>Promptify - AI Chat & Expert Prompts</title>
+        <title>Promptify - AI chat with built in apps</title>
         <meta name="description" content="Unlock the power of AI with Promptify. Use expert-crafted prompts to get better answers from AI." />
         <link rel="canonical" href={window.location.origin} />
         <meta property="og:type" content="website" />
