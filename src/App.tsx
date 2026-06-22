@@ -58,8 +58,8 @@ function App() {
   if (!isSignedIn) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-10">
-        <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.35)]">
-          <div className="text-center mx-auto max-w-xl px-4">
+        <div className="w-full max-w-[min(100%,40rem)] rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.35)]">
+          <div className="text-center mx-auto max-w-[min(100%,34rem)] px-4">
             <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">Promptify</span>
             <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Sign in to access AI chat</h1>
             <p className="mt-4 text-sm leading-6 text-slate-600 sm:text-base">
@@ -68,8 +68,10 @@ function App() {
           </div>
 
           <div className="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-1 shadow-sm">
-            <div className="overflow-hidden rounded-[1.5rem] bg-white">
-              <SignIn />
+            <div className="overflow-hidden rounded-[1.5rem] bg-white w-full min-w-0">
+              <div className="w-full max-w-[calc(100vw-2rem)] mx-auto min-w-0">
+                <SignIn />
+              </div>
             </div>
           </div>
 

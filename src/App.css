@@ -184,3 +184,28 @@
     border-right-color: var(--border);
   }
 }
+
+html,
+body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.cl-rootBox,
+.cl-signIn-root,
+.cl-cardBox,
+.cl-signIn-start,
+.cl-internal-fqc41u,
+.cl-cardBox > *,
+.cl-signIn-root > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 auto !important;
+}
+
+.cl-cardBox {
+  padding: 0 !important;
+}
