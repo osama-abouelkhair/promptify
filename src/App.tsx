@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
-import { Show, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
+import { Show, SignIn, SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/react'
 import ReactMarkdown from 'react-markdown'
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
@@ -40,6 +40,53 @@ function App() {
     };
     fetchPrompts();
   }, [getToken, authLoaded, isSignedIn]);
+
+  if (!authLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-700 px-4">
+        <div className="rounded-3xl border border-slate-200 bg-white px-8 py-12 shadow-xl shadow-slate-200/30 text-center w-full max-w-md">
+          <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Loading promptify</p>
+          <div className="mt-6">
+            <div className="mx-auto h-12 w-12 rounded-full border-4 border-slate-200 border-t-slate-400 animate-spin"></div>
+          </div>
+          <p className="mt-6 text-sm text-slate-500">Preparing your secure workspace…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-10">
+        <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.35)]">
+          <div className="text-center mx-auto max-w-xl px-4">
+            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">Promptify</span>
+            <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Sign in to access AI chat</h1>
+            <p className="mt-4 text-sm leading-6 text-slate-600 sm:text-base">
+              Secure your conversations, save prompts, and keep everything private. Sign in or create an account to continue.
+            </p>
+          </div>
+
+          <div className="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-1 shadow-sm">
+            <div className="overflow-hidden rounded-[1.5rem] bg-white">
+              <SignIn />
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-4 text-center text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              New here? Create an account and start chatting with AI instantly.
+            </p>
+            <SignUpButton mode="modal">
+              <button className="inline-flex justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400">
+                Create account
+              </button>
+            </SignUpButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
