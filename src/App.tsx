@@ -11,12 +11,24 @@ function App() {
   const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
   const location = useLocation();
   const [selectedPromptIdFromUrl, setSelectedPromptIdFromUrl] = useState<string | null>(null);
+  const slugify = (name: string) =>
+    name
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
 
   // Determine the current view and active prompt
   const currentView = location.state?.view || 'chat';
 
   // If the path contains a prompt slug like /prompts/Prompt-Name, extract it
-  const promptSlugFromPath = location.pathname.startsWith('/prompts/') ? decodeURIComponent(location.pathname.split('/prompts/')[1] || '') : null;
+  let promptSlugFromPath: string | null = null;
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  if (pathParts[0] === 'prompts') {
+    promptSlugFromPath = pathParts[1] ? decodeURIComponent(pathParts[1]) : null;
+  }
 
   // Map slug to prompt id once prompts are loaded
   useEffect(() => {
@@ -26,8 +38,7 @@ function App() {
     }
     if (!Array.isArray(prompts) || prompts.length === 0) return;
 
-    const slugify = (name: string) => name.replace(/\s+/g, '-');
-    const matched = prompts.find(p => slugify(p.name) === promptSlugFromPath);
+    const matched = prompts.find(p => slugify(p.name) === slugify(promptSlugFromPath!));
     setSelectedPromptIdFromUrl(matched ? matched.id : null);
   }, [promptSlugFromPath, prompts]);
 
@@ -164,7 +175,7 @@ function App() {
           </Link>
           <div className="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Prompts</div>
           {Array.isArray(prompts) && prompts.map((prompt) => {
-            const slug = prompt.name.replace(/\s+/g, '-');
+            const slug = slugify(prompt.name);
             return (
               <Link
                 key={prompt.id}
