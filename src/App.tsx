@@ -10,10 +10,28 @@ function App() {
   const [prompts, setPrompts] = useState<{ name: string, id: string }[]>([]);
   const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
   const location = useLocation();
+  const [selectedPromptIdFromUrl, setSelectedPromptIdFromUrl] = useState<string | null>(null);
 
   // Determine the current view and active prompt
   const currentView = location.state?.view || 'chat';
-  const activePromptId = location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
+
+  // If the path contains a prompt slug like /prompts/Prompt-Name, extract it
+  const promptSlugFromPath = location.pathname.startsWith('/prompts/') ? decodeURIComponent(location.pathname.split('/prompts/')[1] || '') : null;
+
+  // Map slug to prompt id once prompts are loaded
+  useEffect(() => {
+    if (!promptSlugFromPath) {
+      setSelectedPromptIdFromUrl(null);
+      return;
+    }
+    if (!Array.isArray(prompts) || prompts.length === 0) return;
+
+    const slugify = (name: string) => name.replace(/\s+/g, '-');
+    const matched = prompts.find(p => slugify(p.name) === promptSlugFromPath);
+    setSelectedPromptIdFromUrl(matched ? matched.id : null);
+  }, [promptSlugFromPath, prompts]);
+
+  const activePromptId = location.state?.promptId || selectedPromptIdFromUrl || (prompts.length > 0 ? prompts[0].id : null);
 
   // Fetch prompts on component mount
   useEffect(() => {
@@ -145,21 +163,23 @@ function App() {
             Search chats
           </Link>
           <div className="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Prompts</div>
-          {Array.isArray(prompts) && prompts.map((prompt) => (
-            <Link
-              key={prompt.id}
-              to="/"
-              state={{ view: 'chat', promptId: prompt.id }}
-              onClick={() => setIsSidebarOpen(false)}
-              className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${activePromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              {prompt.name}
-            </Link>
-          ))}
+          {Array.isArray(prompts) && prompts.map((prompt) => {
+            const slug = prompt.name.replace(/\s+/g, '-');
+            return (
+              <Link
+                key={prompt.id}
+                to={`/prompts/${encodeURIComponent(slug)}`}
+                state={{ view: 'chat', promptId: prompt.id }}
+                onClick={() => setIsSidebarOpen(false)}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${activePromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'} `}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                {prompt.name}
+              </Link>
+            )
+          })}
         </nav>
       </aside>
 
@@ -172,7 +192,16 @@ function App() {
             ) : currentView === 'search' ? (
               <SearchView getToken={getToken} prompts={prompts} />
             ) : (
-              <ChatView getToken={getToken} prompts={prompts} />
+              <ChatView getToken={getToken} prompts={prompts} activePromptId={activePromptId} />
+            )
+          } />
+          <Route path="/prompts/:slug" element={
+            !authLoaded ? (
+              <div className="p-4 md:p-8 text-slate-500">Initializing...</div>
+            ) : currentView === 'search' ? (
+              <SearchView getToken={getToken} prompts={prompts} />
+            ) : (
+              <ChatView getToken={getToken} prompts={prompts} activePromptId={activePromptId} />
             )
           } />
           {/* Catch-all route to handle internal 404s and redirect back to chat */}
@@ -183,10 +212,10 @@ function App() {
   );
 }
 
-function ChatView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
+function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { getToken: any, prompts: any[], activePromptId?: string }) {
   const location = useLocation();
 
-  const activePromptId = location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
+  const activePromptId = location.state?.promptId || activePromptIdProp || (prompts.length > 0 ? prompts[0].id : null);
   const conversationIdFromLocation = location.state?.conversationId;
 
   const [internalConversationId, setInternalConversationId] = useState<string | undefined>(conversationIdFromLocation);
