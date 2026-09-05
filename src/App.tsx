@@ -32,22 +32,51 @@ export const getPromptForConversation = (
 ): Prompt | null => {
   if (!Array.isArray(prompts) || prompts.length === 0) return null;
 
-  const directPromptId = conv.promptId || conv.prompt_id;
-  if (directPromptId) {
-    const found = prompts.find(p => p.id === directPromptId);
+  const anyConv = conv as any;
+  const directPrompt = conv.promptId || conv.prompt_id || anyConv?.prompt || anyConv?.promptName || anyConv?.prompt_name;
+  if (directPrompt && typeof directPrompt === 'string') {
+    const found = prompts.find(p =>
+      p.id === directPrompt ||
+      slugify(p.name) === slugify(directPrompt) ||
+      p.name.toLowerCase() === directPrompt.toLowerCase()
+    );
     if (found) return found;
   }
 
   if (conv.id && typeof conv.id === 'string') {
-    const prefixId = conv.id.includes('_') ? conv.id.split('_')[0] : conv.id;
-    const foundById = prompts.find(p => p.id === prefixId);
-    if (foundById) return foundById;
+    const parts = conv.id.split('_');
+    const prefixId = parts[0];
 
-    const foundByName = prompts.find(p => slugify(p.name) === slugify(prefixId));
-    if (foundByName) return foundByName;
+    // Check prefix match
+    const foundByPrefixId = prompts.find(p => p.id === prefixId);
+    if (foundByPrefixId) return foundByPrefixId;
+
+    const foundByPrefixSlug = prompts.find(p => slugify(p.name) === slugify(prefixId));
+    if (foundByPrefixSlug) return foundByPrefixSlug;
+
+    const foundByPrefixName = prompts.find(p => p.name.toLowerCase() === prefixId.toLowerCase());
+    if (foundByPrefixName) return foundByPrefixName;
+
+    // Check each part of conv.id
+    for (const part of parts) {
+      const foundPart = prompts.find(p =>
+        p.id === part ||
+        slugify(p.name) === slugify(part) ||
+        p.name.toLowerCase() === part.toLowerCase()
+      );
+      if (foundPart) return foundPart;
+    }
+
+    // Check if conv.id contains prompt id or prompt slug
+    const lowerConvId = conv.id.toLowerCase();
+    for (const p of prompts) {
+      if (lowerConvId.includes(p.id.toLowerCase()) || lowerConvId.includes(slugify(p.name))) {
+        return p;
+      }
+    }
   }
 
-  return prompts[0] || null;
+  return null;
 };
 
 function App() {
@@ -58,6 +87,8 @@ function App() {
 
   // Determine the current view and active prompt
   const isSearchView = location.pathname === '/search' || location.state?.view === 'search';
+  const searchParams = new URLSearchParams(location.search);
+  const conversationIdFromLocation = location.state?.conversationId || searchParams.get('c') || searchParams.get('conversation_id');
 
   // If the path contains a prompt slug like /prompts/Prompt-Name, extract it
   let promptSlugFromPath: string | null = null;
@@ -68,7 +99,11 @@ function App() {
   }
 
   const matchedPromptFromSlug = (promptSlugFromPath && Array.isArray(prompts))
-    ? prompts.find(p => slugify(p.name) === slugify(promptSlugFromPath!))
+    ? prompts.find(p =>
+        slugify(p.name) === slugify(promptSlugFromPath!) ||
+        p.id === promptSlugFromPath ||
+        p.name.toLowerCase() === promptSlugFromPath!.toLowerCase()
+      )
     : null;
   const selectedPromptIdFromUrl = matchedPromptFromSlug ? matchedPromptFromSlug.id : null;
 
@@ -205,7 +240,7 @@ function App() {
 
           <Link
             to="/search"
-            state={{ view: 'search' }}
+            state={{ view: 'search', promptId: activePromptId }}
             onClick={() => setIsSidebarOpen(false)}
             className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${isSearchView ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
           >
@@ -253,7 +288,12 @@ function App() {
             ) : isSearchView ? (
               <SearchView getToken={getToken} prompts={prompts} />
             ) : (
-              <ChatView getToken={getToken} prompts={prompts} activePromptId={activePromptId} />
+              <ChatView
+                key={`${activePromptId || 'chat'}_${conversationIdFromLocation || location.key}`}
+                getToken={getToken}
+                prompts={prompts}
+                activePromptId={activePromptId}
+              />
             )
           } />
           <Route path="/prompts/:slug" element={
@@ -262,7 +302,12 @@ function App() {
             ) : isSearchView ? (
               <SearchView getToken={getToken} prompts={prompts} />
             ) : (
-              <ChatView getToken={getToken} prompts={prompts} activePromptId={activePromptId} />
+              <ChatView
+                key={`${activePromptId || 'chat'}_${conversationIdFromLocation || location.key}`}
+                getToken={getToken}
+                prompts={prompts}
+                activePromptId={activePromptId}
+              />
             )
           } />
           {/* Catch-all route to handle internal 404s and redirect back to chat */}
@@ -284,7 +329,10 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
 
   useEffect(() => {
     setInternalConversationId(conversationIdFromLocation);
-  }, [conversationIdFromLocation]);
+    if (!conversationIdFromLocation) {
+      setMessages([]);
+    }
+  }, [conversationIdFromLocation, activePromptId, location.key]);
 
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
@@ -376,6 +424,11 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
         const xConvId = response.headers.get('X-Conversation-Id');
         if (xConvId && !internalConversationId) {
           setInternalConversationId(xConvId);
+          try {
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('c', xConvId);
+            window.history.replaceState(null, '', newUrl.toString());
+          } catch {}
         }
 
         if (!response.body) throw new Error('ReadableStream not supported');
@@ -581,8 +634,8 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: Prompt[] })
             {Array.isArray(conversations) && conversations.map((conv) => {
               const matchedPrompt = getPromptForConversation(conv, prompts);
               const targetUrl = matchedPrompt
-                ? `/prompts/${encodeURIComponent(slugify(matchedPrompt.name))}`
-                : '/';
+                ? `/prompts/${encodeURIComponent(slugify(matchedPrompt.name))}?c=${encodeURIComponent(conv.id)}`
+                : (prompts.length > 0 ? `/prompts/${encodeURIComponent(slugify(prompts[0].name))}?c=${encodeURIComponent(conv.id)}` : `/?c=${encodeURIComponent(conv.id)}`);
               const targetPromptId = matchedPrompt ? matchedPrompt.id : (prompts[0]?.id || 'default');
 
               return (
