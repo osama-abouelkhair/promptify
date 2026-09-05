@@ -26,8 +26,9 @@ function App() {
   // If the path contains a prompt slug like /prompts/Prompt-Name, extract it
   let promptSlugFromPath: string | null = null;
   const pathParts = location.pathname.split('/').filter(Boolean);
-  if (pathParts[0] === 'prompts') {
-    promptSlugFromPath = pathParts[1] ? decodeURIComponent(pathParts[1]) : null;
+  const promptsIndex = pathParts.findIndex(p => p.toLowerCase() === 'prompts');
+  if (promptsIndex !== -1 && pathParts[promptsIndex + 1]) {
+    promptSlugFromPath = decodeURIComponent(pathParts[promptsIndex + 1]);
   }
 
   // Map slug to prompt id once prompts are loaded
@@ -42,7 +43,7 @@ function App() {
     setSelectedPromptIdFromUrl(matched ? matched.id : null);
   }, [promptSlugFromPath, prompts]);
 
-  const activePromptId = location.state?.promptId || selectedPromptIdFromUrl || (prompts.length > 0 ? prompts[0].id : null);
+  const activePromptId = (promptSlugFromPath ? selectedPromptIdFromUrl : null) || location.state?.promptId || selectedPromptIdFromUrl || (prompts.length > 0 ? prompts[0].id : null);
 
   // Fetch prompts on component mount
   useEffect(() => {
@@ -90,8 +91,16 @@ function App() {
   }
 
   if (!isSignedIn) {
+    const fallbackTitle = promptSlugFromPath ? `${promptSlugFromPath.replace(/-/g, ' ')} | Promptify AI` : 'Promptify - AI chat with built in apps';
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-10">
+        <Helmet>
+          <title>{fallbackTitle}</title>
+          <meta name="description" content="Unlock the power of AI with Promptify. Use expert-crafted prompts to get better answers from AI." />
+          <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : 'https://www.promptify.now'} />
+          <meta property="og:type" content="website" />
+          <meta name="twitter:card" content="summary_large_image" />
+        </Helmet>
         <div className="w-full max-w-[min(100%,40rem)] rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.35)]">
           <div className="text-center mx-auto max-w-[min(100%,34rem)] px-4">
             <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">Promptify</span>
@@ -101,7 +110,7 @@ function App() {
           <div className="mt-8 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-1 shadow-sm">
             <div className="overflow-hidden rounded-[1.5rem] bg-white w-full min-w-0">
               <div className="w-full max-w-[calc(100vw-2rem)] mx-auto min-w-0">
-                <SignIn />
+                <SignIn fallbackRedirectUrl={location.pathname + location.search} />
               </div>
             </div>
           </div>
@@ -110,7 +119,7 @@ function App() {
             <p>
               New here? Create an account to unlock better answers.
             </p>
-            <SignUpButton mode="modal">
+            <SignUpButton mode="modal" fallbackRedirectUrl={location.pathname + location.search}>
               <button className="inline-flex justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400">
                 Create account
               </button>
@@ -231,7 +240,7 @@ function App() {
 function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { getToken: any, prompts: any[], activePromptId?: string }) {
   const location = useLocation();
 
-  const activePromptId = location.state?.promptId || activePromptIdProp || (prompts.length > 0 ? prompts[0].id : null);
+  const activePromptId = activePromptIdProp || location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
   const conversationIdFromLocation = location.state?.conversationId;
 
   const [internalConversationId, setInternalConversationId] = useState<string | undefined>(conversationIdFromLocation);
