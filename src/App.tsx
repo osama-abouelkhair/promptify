@@ -5,23 +5,59 @@ import ReactMarkdown from 'react-markdown'
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 
+export interface Prompt {
+  name: string;
+  id: string;
+}
+
+export interface ConversationItem {
+  id: string;
+  lastModified?: string;
+  promptId?: string;
+  prompt_id?: string;
+}
+
+export const slugify = (name: string) =>
+  name
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
+export const getPromptForConversation = (
+  conv: ConversationItem,
+  prompts: Prompt[]
+): Prompt | null => {
+  if (!Array.isArray(prompts) || prompts.length === 0) return null;
+
+  const directPromptId = conv.promptId || conv.prompt_id;
+  if (directPromptId) {
+    const found = prompts.find(p => p.id === directPromptId);
+    if (found) return found;
+  }
+
+  if (conv.id && typeof conv.id === 'string') {
+    const prefixId = conv.id.includes('_') ? conv.id.split('_')[0] : conv.id;
+    const foundById = prompts.find(p => p.id === prefixId);
+    if (foundById) return foundById;
+
+    const foundByName = prompts.find(p => slugify(p.name) === slugify(prefixId));
+    if (foundByName) return foundByName;
+  }
+
+  return prompts[0] || null;
+};
+
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [prompts, setPrompts] = useState<{ name: string, id: string }[]>([]);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
   const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
   const location = useLocation();
-  const [selectedPromptIdFromUrl, setSelectedPromptIdFromUrl] = useState<string | null>(null);
-  const slugify = (name: string) =>
-    name
-      .toString()
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
 
   // Determine the current view and active prompt
-  const currentView = location.state?.view || 'chat';
+  const isSearchView = location.pathname === '/search' || location.state?.view === 'search';
 
   // If the path contains a prompt slug like /prompts/Prompt-Name, extract it
   let promptSlugFromPath: string | null = null;
@@ -31,19 +67,16 @@ function App() {
     promptSlugFromPath = decodeURIComponent(pathParts[promptsIndex + 1]);
   }
 
-  // Map slug to prompt id once prompts are loaded
-  useEffect(() => {
-    if (!promptSlugFromPath) {
-      setSelectedPromptIdFromUrl(null);
-      return;
-    }
-    if (!Array.isArray(prompts) || prompts.length === 0) return;
+  const matchedPromptFromSlug = (promptSlugFromPath && Array.isArray(prompts))
+    ? prompts.find(p => slugify(p.name) === slugify(promptSlugFromPath!))
+    : null;
+  const selectedPromptIdFromUrl = matchedPromptFromSlug ? matchedPromptFromSlug.id : null;
 
-    const matched = prompts.find(p => slugify(p.name) === slugify(promptSlugFromPath!));
-    setSelectedPromptIdFromUrl(matched ? matched.id : null);
-  }, [promptSlugFromPath, prompts]);
-
-  const activePromptId = (promptSlugFromPath ? selectedPromptIdFromUrl : null) || location.state?.promptId || selectedPromptIdFromUrl || (prompts.length > 0 ? prompts[0].id : null);
+  const activePromptId = (promptSlugFromPath ? selectedPromptIdFromUrl : null) || location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
+  const activePrompt = Array.isArray(prompts) ? prompts.find(p => p.id === activePromptId) : null;
+  const newChatUrl = activePrompt
+    ? `/prompts/${encodeURIComponent(slugify(activePrompt.name))}`
+    : (prompts.length > 0 ? `/prompts/${encodeURIComponent(slugify(prompts[0].name))}` : '/');
 
   // Fetch prompts on component mount
   useEffect(() => {
@@ -62,11 +95,6 @@ function App() {
           const data = await response.json();
           if (Array.isArray(data)) {
             setPrompts(data);
-            // If user arrived via a /prompts/:slug URL, try to select the prompt immediately
-            if (promptSlugFromPath) {
-              const matched = data.find((p: any) => slugify(p.name) === slugify(promptSlugFromPath!));
-              setSelectedPromptIdFromUrl(matched ? matched.id : null);
-            }
           }
         }
       } catch (error) {
@@ -163,7 +191,7 @@ function App() {
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <Link
-            to="/"
+            to={newChatUrl}
             state={{ view: 'chat', promptId: activePromptId || (prompts.length > 0 ? prompts[0].id : null) }}
             onClick={() => setIsSidebarOpen(false)}
             className="w-full flex items-center gap-3 px-4 py-2 mb-4 rounded-md font-semibold transition-colors text-left bg-slate-100 text-slate-900 hover:bg-slate-200"
@@ -176,10 +204,10 @@ function App() {
           </Link>
 
           <Link
-            to="/"
+            to="/search"
             state={{ view: 'search' }}
             onClick={() => setIsSidebarOpen(false)}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left text-slate-400 hover:text-white hover:bg-slate-700"
+            className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${isSearchView ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8" />
@@ -190,13 +218,14 @@ function App() {
           <div className="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Prompts</div>
           {Array.isArray(prompts) && prompts.map((prompt) => {
             const slug = slugify(prompt.name);
+            const isPromptActive = !isSearchView && activePromptId === prompt.id;
             return (
               <Link
                 key={prompt.id}
                 to={`/prompts/${encodeURIComponent(slug)}`}
                 state={{ view: 'chat', promptId: prompt.id }}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${activePromptId === prompt.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'} `}
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-md font-medium transition-colors text-left ${isPromptActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'} `}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -211,10 +240,17 @@ function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Routes>
+          <Route path="/search" element={
+            !authLoaded ? (
+              <div className="p-4 md:p-8 text-slate-500">Initializing...</div>
+            ) : (
+              <SearchView getToken={getToken} prompts={prompts} />
+            )
+          } />
           <Route path="/" element={
             !authLoaded ? (
               <div className="p-4 md:p-8 text-slate-500">Initializing...</div>
-            ) : currentView === 'search' ? (
+            ) : isSearchView ? (
               <SearchView getToken={getToken} prompts={prompts} />
             ) : (
               <ChatView getToken={getToken} prompts={prompts} activePromptId={activePromptId} />
@@ -223,7 +259,7 @@ function App() {
           <Route path="/prompts/:slug" element={
             !authLoaded ? (
               <div className="p-4 md:p-8 text-slate-500">Initializing...</div>
-            ) : currentView === 'search' ? (
+            ) : isSearchView ? (
               <SearchView getToken={getToken} prompts={prompts} />
             ) : (
               <ChatView getToken={getToken} prompts={prompts} activePromptId={activePromptId} />
@@ -237,11 +273,12 @@ function App() {
   );
 }
 
-function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { getToken: any, prompts: any[], activePromptId?: string }) {
+function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { getToken: any, prompts: Prompt[], activePromptId?: string }) {
   const location = useLocation();
 
   const activePromptId = activePromptIdProp || location.state?.promptId || (prompts.length > 0 ? prompts[0].id : null);
-  const conversationIdFromLocation = location.state?.conversationId;
+  const searchParams = new URLSearchParams(location.search);
+  const conversationIdFromLocation = location.state?.conversationId || searchParams.get('c') || searchParams.get('conversation_id');
 
   const [internalConversationId, setInternalConversationId] = useState<string | undefined>(conversationIdFromLocation);
 
@@ -255,7 +292,8 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
   const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
 
   const activePrompt = prompts.find(p => p.id === activePromptId);
-  const pageTitle = activePrompt ? `${activePrompt.name} | Promptify AI` : 'Chat | Promptify AI';
+  const activePromptDisplayName = activePrompt ? activePrompt.name.replace(/-/g, ' ') : 'Promptify';
+  const pageTitle = activePrompt ? `${activePromptDisplayName} | Promptify AI` : 'Chat | Promptify AI';
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -428,7 +466,7 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
           <div className="flex items-center justify-between pb-6 border-b border-slate-200 pl-12 md:pl-0 mt-4 md:mt-0">
             <header>
                <h1 className="text-xl md:text-3xl font-bold tracking-tight text-slate-900">
-                 {activePrompt ? activePrompt.name : 'Promptify'}
+                 {activePromptDisplayName}
                </h1>
             </header>
             <div className="flex items-center gap-4">
@@ -473,7 +511,7 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
               <textarea
                 ref={inputRef}
                 rows={1}
-                placeholder={`Use ${Array.isArray(prompts) ? (prompts.find(p => p.id === activePromptId)?.name || 'Prompt') : 'Prompt'} to unlock a better answer`}
+                placeholder={`Use ${activePrompt ? activePromptDisplayName : 'Prompt'} to unlock a better answer`}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => {
@@ -498,9 +536,9 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
   );
 }
 
-function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
+function SearchView({ getToken, prompts }: { getToken: any, prompts: Prompt[] }) {
   const pageTitle = "Search Conversations | Promptify AI";
-  const [conversations, setConversations] = useState<{ id: string, lastModified?: string }[]>([]);
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -540,23 +578,38 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: any[] }) {
           <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div></div>
         ) : (
           <div className="grid gap-4">
-            {Array.isArray(conversations) && conversations.map((conv) => (
-              <Link
-                key={conv.id}
-                to="/"
-                state={{ view: 'chat', promptId: prompts[0]?.id || 'default', conversationId: conv.id }}
-                className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all block group"
-              >
-                <div className="flex justify-between items-start gap-4 min-w-0">
-                  <h3 className="font-semibold text-slate-900 truncate min-w-0">
-                    {conv.id.split('_').slice(1).join('_') || 'Untitled Chat'}
-                  </h3>
-                  <span className="text-xs text-slate-500 whitespace-nowrap mt-1">
-                    {conv.lastModified ? new Date(conv.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
-                  </span>
-                </div>
-              </Link>
-            ))}
+            {Array.isArray(conversations) && conversations.map((conv) => {
+              const matchedPrompt = getPromptForConversation(conv, prompts);
+              const targetUrl = matchedPrompt
+                ? `/prompts/${encodeURIComponent(slugify(matchedPrompt.name))}`
+                : '/';
+              const targetPromptId = matchedPrompt ? matchedPrompt.id : (prompts[0]?.id || 'default');
+
+              return (
+                <Link
+                  key={conv.id}
+                  to={targetUrl}
+                  state={{ view: 'chat', promptId: targetPromptId, conversationId: conv.id }}
+                  className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-all block group"
+                >
+                  <div className="flex justify-between items-start gap-4 min-w-0">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-slate-900 truncate min-w-0">
+                        {conv.id.includes('_') ? conv.id.split('_').slice(1).join('_') : (conv.id || 'Untitled Chat')}
+                      </h3>
+                      {matchedPrompt && (
+                        <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-medium">
+                          {matchedPrompt.name.replace(/-/g, ' ')}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-slate-500 whitespace-nowrap mt-1">
+                      {conv.lastModified ? new Date(conv.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
