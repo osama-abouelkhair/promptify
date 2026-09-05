@@ -61,6 +61,11 @@ function App() {
           const data = await response.json();
           if (Array.isArray(data)) {
             setPrompts(data);
+            // If user arrived via a /prompts/:slug URL, try to select the prompt immediately
+            if (promptSlugFromPath) {
+              const matched = data.find((p: any) => slugify(p.name) === slugify(promptSlugFromPath!));
+              setSelectedPromptIdFromUrl(matched ? matched.id : null);
+            }
           }
         }
       } catch (error) {
