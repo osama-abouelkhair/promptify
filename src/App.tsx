@@ -15,7 +15,20 @@ export interface ConversationItem {
   lastModified?: string;
   promptId?: string;
   prompt_id?: string;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+  date?: string;
 }
+
+export const getConversationDate = (conv: ConversationItem): number => {
+  const anyConv = conv as any;
+  const rawDate = conv.lastModified || anyConv?.updatedAt || anyConv?.updated_at || anyConv?.createdAt || anyConv?.created_at || anyConv?.date;
+  if (!rawDate) return 0;
+  const time = new Date(rawDate).getTime();
+  return isNaN(time) ? 0 : time;
+};
 
 export const slugify = (name: string) =>
   name
@@ -607,7 +620,8 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: Prompt[] })
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data)) {
-            setConversations(data);
+            const sorted = [...data].sort((a, b) => getConversationDate(b) - getConversationDate(a));
+            setConversations(sorted);
           }
         }
       } catch (error) {
@@ -618,6 +632,10 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: Prompt[] })
     };
     fetchConversations();
   }, [getToken]);
+
+  const sortedConversations = Array.isArray(conversations)
+    ? [...conversations].sort((a, b) => getConversationDate(b) - getConversationDate(a))
+    : [];
 
   return (
     <div className="flex-1 px-4 md:px-8 pt-8 overflow-y-auto bg-slate-50">
@@ -631,12 +649,13 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: Prompt[] })
           <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div></div>
         ) : (
           <div className="grid gap-4">
-            {Array.isArray(conversations) && conversations.map((conv) => {
+            {sortedConversations.map((conv) => {
               const matchedPrompt = getPromptForConversation(conv, prompts);
               const targetUrl = matchedPrompt
                 ? `/prompts/${encodeURIComponent(slugify(matchedPrompt.name))}?c=${encodeURIComponent(conv.id)}`
                 : (prompts.length > 0 ? `/prompts/${encodeURIComponent(slugify(prompts[0].name))}?c=${encodeURIComponent(conv.id)}` : `/?c=${encodeURIComponent(conv.id)}`);
               const targetPromptId = matchedPrompt ? matchedPrompt.id : (prompts[0]?.id || 'default');
+              const displayDate = conv.lastModified || conv.updatedAt || conv.updated_at || conv.createdAt || conv.created_at || conv.date;
 
               return (
                 <Link
@@ -657,7 +676,7 @@ function SearchView({ getToken, prompts }: { getToken: any, prompts: Prompt[] })
                       )}
                     </div>
                     <span className="text-xs text-slate-500 whitespace-nowrap mt-1">
-                      {conv.lastModified ? new Date(conv.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                      {displayDate ? new Date(displayDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
                     </span>
                   </div>
                 </Link>
