@@ -192,6 +192,30 @@ body {
   overflow-x: hidden;
 }
 
+.sidebar-scrollbar {
+  scrollbar-color: #94a3b8 #475569;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: #475569;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 2px solid #475569;
+  border-radius: 9999px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
 .cl-rootBox,
 .cl-signIn-root,
 .cl-cardBox,
