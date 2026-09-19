@@ -94,6 +94,7 @@ export const getPromptForConversation = (
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarScrolled, setIsSidebarScrolled] = useState(false);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
   const location = useLocation();
@@ -230,8 +231,11 @@ function App() {
       </button>
 
       {/* Sidebar Component */}
-      <aside className={`${isSidebarOpen ? 'flex' : 'hidden'} sidebar-scrollbar md:flex h-full min-h-0 flex-col w-full md:w-64 overflow-y-scroll overscroll-contain bg-slate-700 text-slate-100 fixed md:static inset-0 z-50 md:z-auto transition-all`}>
-        <div className="sticky top-0 z-10 shrink-0 bg-slate-700 shadow-sm">
+      <aside
+        onScroll={(event) => setIsSidebarScrolled(event.currentTarget.scrollTop > 0)}
+        className={`${isSidebarOpen ? 'flex' : 'hidden'} sidebar-scrollbar md:flex h-full min-h-0 flex-col w-full md:w-64 overflow-y-scroll overscroll-contain bg-slate-700 text-slate-100 fixed md:static inset-0 z-50 md:z-auto transition-all`}
+      >
+        <div className={`sticky top-0 z-10 shrink-0 bg-slate-700 transition-shadow ${isSidebarScrolled ? 'shadow-sm' : 'shadow-none'}`}>
           <div className="flex items-center justify-between p-6 border-b border-slate-600">
             <span className="text-2xl font-bold tracking-tight">App</span>
             <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-slate-300 hover:text-white" aria-label="Close Sidebar">
