@@ -360,6 +360,7 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([]);
   const [currentStreamingAiText, setCurrentStreamingAiText] = useState<string>('');
+  const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null); // Create a ref for the messages container
 
   const activePrompt = prompts.find(p => p.id === activePromptId);
@@ -380,7 +381,7 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
     }
-  }, [messages, currentStreamingAiText]);
+  }, [messages, currentStreamingAiText, isThinking]);
 
   // Load history when conversationId is present in URL
   useEffect(() => {
@@ -423,6 +424,7 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
       setMessages((prev) => [...prev, userMsg]);
       setInputValue('');
       setCurrentStreamingAiText('');
+      setIsThinking(true);
 
       let accumulatedText = ''; // Local variable to accumulate text before updating state
 
@@ -486,6 +488,7 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
                   candidate.content?.parts?.forEach((part: any) => {
                     if (part.text) {
                       accumulatedText += part.text;
+                      setIsThinking(false);
                     }
                   });
                 });
@@ -507,10 +510,12 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
         }
 
         // After the stream is done, add the complete message to the messages array
+        setIsThinking(false);
         setMessages((prev) => [...prev, { role: 'ai', text: accumulatedText }]);
         setCurrentStreamingAiText(''); // Clear the streaming text state
       } catch (error) {
         console.error('Error fetching response:', error);
+        setIsThinking(false);
         // If an error occurs, add an error message to the main messages array
         // We append to any partially received text
         setMessages((prev) => [...prev, { role: 'ai' as const, text: accumulatedText + "\n\nError: Unable to get a complete response from the server." }]);
@@ -571,6 +576,11 @@ function ChatView({ getToken, prompts, activePromptId: activePromptIdProp }: { g
                 {msg.role === 'user' ? <p className="leading-relaxed">{msg.text}</p> : <div className="leading-relaxed prose prose-slate max-w-none text-slate-900"><ReactMarkdown>{msg.text}</ReactMarkdown></div>}
               </article>
             ))}
+            {isThinking && !currentStreamingAiText && (
+              <article className="max-w-[85%] px-4 py-2 self-start text-slate-500" role="status" aria-live="polite">
+                <span className="animate-pulse">Thinking...</span>
+              </article>
+            )}
             {currentStreamingAiText && (
               <article className="max-w-[85%] px-4 py-2 self-start bg-transparent text-slate-900">
                 <div className="leading-relaxed prose prose-slate max-w-none text-slate-900"><ReactMarkdown>{currentStreamingAiText}</ReactMarkdown></div>
