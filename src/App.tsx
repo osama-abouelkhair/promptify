@@ -207,7 +207,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-dvh w-full bg-slate-50 text-slate-900 font-sans">
+    <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-slate-50 text-slate-900 font-sans">
       <Helmet>
         <title>Promptify - AI chat with built in apps</title>
         <meta name="description" content="Unlock the power of AI with Promptify. Use expert-crafted prompts to get better answers from AI." />
@@ -230,14 +230,14 @@ function App() {
       </button>
 
       {/* Sidebar Component */}
-      <aside className={`${isSidebarOpen ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-64 bg-slate-800 text-slate-100 fixed md:static inset-0 z-50 md:z-auto transition-all`}>
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+      <aside className={`${isSidebarOpen ? 'flex' : 'hidden'} md:flex h-full min-h-0 flex-col w-full md:w-64 overflow-hidden bg-slate-800 text-slate-100 fixed md:static inset-0 z-50 md:z-auto transition-all`}>
+        <div className="flex shrink-0 items-center justify-between p-6 border-b border-slate-700">
           <span className="text-2xl font-bold tracking-tight">App</span>
           <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-slate-400 hover:text-white" aria-label="Close Sidebar">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 space-y-2">
           <Link
             to={newChatUrl}
             state={{ view: 'chat', promptId: activePromptId || (prompts.length > 0 ? prompts[0].id : null) }}
@@ -286,7 +286,7 @@ function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="min-h-0 flex-1 flex flex-col min-w-0 overflow-hidden">
         <Routes>
           <Route path="/search" element={
             !authLoaded ? (
